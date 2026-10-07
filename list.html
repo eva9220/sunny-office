@@ -25,8 +25,8 @@ select,input,textarea{font:inherit;font-size:15px;border:1.5px solid var(--line)
 </style></head><body>
 <header><a href="index.html">← Sunny Office</a><b id="ttl"></b></header>
 <main>
-<div class="bar"><select id="cat"></select><input id="q" placeholder="搜尋" style="flex:1"><button class="b g" id="add">＋ 新增</button></div>
-<div class="fm" id="fm"></div>
+<div class="bar"><select id="cat"></select><input id="q" placeholder="搜尋" style="flex:1"><button class="b g" id="add">＋ 新增</button><button class="b" id="ec">✎ 類別</button></div>
+<div class="fm" id="fm"></div><div class="fm" id="cp"></div>
 <div class="sum" id="sum"></div>
 <div class="bar"><button class="b" id="xl">📥 匯出 Excel</button><button class="b" id="wd">📝 匯出 Word</button><button class="b" id="pp">🖨️ 列印清冊</button></div>
 <div id="lst"></div>
@@ -34,28 +34,32 @@ select,input,textarea{font:inherit;font-size:15px;border:1.5px solid var(--line)
 </main>
 <script>
 var T=new URLSearchParams(location.search).get("t")==="asset"?"asset":"vendor",KEY="adm:"+T;
-var CFG={vendor:{ttl:"🧰 廠商報價",cats:["裝潢","招牌","廚具","地墊","書包","嬰兒床","其他"],f:[["vendor","廠商"],["name","品項"],["spec","規格"],["qty","數量","number"],["price","單價（報價）","number"],["date","報價日期","date"],["st","狀態","select",["比較中","已選定","未選用"]],["note","備註","text"]],ph:6,key:"vendor",cl:"類別"},
+var CFG={vendor:{ttl:"🧰 廠商報價",cats:["裝潢","招牌","廚具","地墊","書包","嬰兒床","其他"],f:[["vendor","廠商"],["name","品項"],["spec","規格"],["qty","數量","number"],["price","單價（報價）","number"],["labor","工資（選填）","number"],["ship","運費（選填）","number"],["date","報價日期","date"],["st","狀態","select",["比較中","已選定","未選用"]],["note","備註","text"]],ph:6,key:"vendor",cl:"類別"},
 asset:{ttl:"📚 財產清冊",cats:["書籍","教玩具","設備","家具","其他"],f:[["name","名稱"],["qty","數量","number"],["price","單價","number"],["date","購買日期","date"],["pub","出版社／廠牌"],["st","狀態","select",["良好","汰換"]],["note","備註","text"]],ph:2,key:"pub",cl:"分類"}}[T];
+try{var sc=JSON.parse(localStorage.getItem("adm:cats:"+T));if(sc&&sc.length)CFG.cats=sc}catch(e){}
 document.getElementById("ttl").textContent=CFG.ttl;document.title=CFG.ttl+"｜Sunny Office";
 var $=function(i){return document.getElementById(i)},L=[];try{L=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(L))}catch(e){alert("儲存空間已滿，請先匯出 Excel 並刪除部分照片")}}
 var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")},ed=-1,cur=[];
-$("cat").innerHTML='<option value="">全部'+CFG.cl+'</option>'+CFG.cats.map(function(c){return'<option>'+c+'</option>'}).join("");
+function fillCat(){var v=$("cat").value;$("cat").innerHTML='<option value="">全部'+CFG.cl+'</option>'+CFG.cats.map(function(c){return'<option>'+E(c)+'</option>'}).join("");$("cat").value=v}fillCat();
 function rows(){var c=$("cat").value,q=$("q").value.trim();return L.map(function(x,i){x.i=i;return x}).filter(function(x){return(!c||x.c===c)&&(!q||JSON.stringify(x.f).indexOf(q)>-1||x.c.indexOf(q)>-1)})}
-function amt(x){return(+x.f.qty||0)*(+x.f.price||0)}
+function amt(x){return(+x.f.qty||0)*(+x.f.price||0)+(+x.f.labor||0)+(+x.f.ship||0)}
 function render(){var r=rows(),tot=r.reduce(function(s,x){return s+amt(x)},0);
  $("sum").innerHTML="共 <b>"+r.length+"</b> 筆　合計金額 <span class='pr'>$"+tot.toLocaleString()+"</span>";
- $("lst").innerHTML=r.map(function(x){var f=x.f;return'<div class="it"><h3>'+(T==="asset"?"#"+(x.i+1)+" ":"")+E(f.name||"（未命名）")+'</h3><small><span class="tag">'+E(x.c)+'</span>'+E(f[CFG.key]||"")+(f.st?' ・ '+E(f.st):'')+(f.date?' ・ '+E(f.date):'')+'</small><div>數量 '+E(f.qty||0)+' × $'+E(f.price||0)+' = <span class="pr">$'+amt(x).toLocaleString()+'</span></div>'+(f.spec?'<div><small>'+E(f.spec)+'</small></div>':'')+(f.note?'<div><small>備註：'+E(f.note)+'</small></div>':'')+'<div class="ph">'+x.ph.map(function(p){return'<img src="'+p+'">'}).join("")+'</div><button class="b" data-e="'+x.i+'">編輯</button> <button class="b" data-d="'+x.i+'">刪除</button></div>'}).join("")||'<p style="color:#8c857d;text-align:center">還沒有資料，按「＋ 新增」開始。</p>';
- $("pt").innerHTML=T==="asset"?'<tr><th>編號</th><th>名稱</th><th>數量</th><th>單價</th><th>購買日期</th><th colspan=2>圖書</th><th>出版社</th><th>備註</th></tr>'+r.map(function(x){var f=x.f;return'<tr><td>'+(x.i+1)+'</td><td>'+E(f.name)+'</td><td>'+E(f.qty)+'</td><td>'+E(f.price)+'</td><td>'+E(f.date)+'</td><td>'+(x.ph[0]?'<img src="'+x.ph[0]+'">':'')+'</td><td>'+(x.ph[1]?'<img src="'+x.ph[1]+'">':'')+'</td><td>'+E(f.pub)+'</td><td>□'+(f.st==="汰換"?"汰換":"良好")+'</td></tr>'}).join(""):'<tr><th>類別</th><th>廠商</th><th>品項</th><th>數量</th><th>單價</th><th>照片</th><th>狀態</th></tr>'+r.map(function(x){var f=x.f;return'<tr><td>'+E(x.c)+'</td><td>'+E(f.vendor)+'</td><td>'+E(f.name)+'</td><td>'+E(f.qty)+'</td><td>'+E(f.price)+'</td><td>'+x.ph.slice(0,2).map(function(p){return'<img src="'+p+'">'}).join("")+'</td><td>'+E(f.st)+'</td></tr>'}).join("")}
+ $("lst").innerHTML=r.map(function(x){var f=x.f;return'<div class="it"><h3>'+(T==="asset"?"#"+(x.i+1)+" ":"")+E(f.name||"（未命名）")+'</h3><small><span class="tag">'+E(x.c)+'</span>'+E(f[CFG.key]||"")+(f.st?' ・ '+E(f.st):'')+(f.date?' ・ '+E(f.date):'')+'</small><div>數量 '+E(f.qty||0)+' × $'+E(f.price||0)+((+f.labor||+f.ship)?' ＋ 工資 $'+(+f.labor||0).toLocaleString()+' ＋ 運費 $'+(+f.ship||0).toLocaleString():'')+' = <span class="pr">$'+amt(x).toLocaleString()+'</span></div>'+(f.spec?'<div><small>'+E(f.spec)+'</small></div>':'')+(f.note?'<div><small>備註：'+E(f.note)+'</small></div>':'')+'<div class="ph">'+x.ph.map(function(p){return'<img src="'+p+'">'}).join("")+'</div><button class="b" data-e="'+x.i+'">編輯</button> <button class="b" data-d="'+x.i+'">刪除</button></div>'}).join("")||'<p style="color:#8c857d;text-align:center">還沒有資料，按「＋ 新增」開始。</p>';
+ $("pt").innerHTML=T==="asset"?'<tr><th>編號</th><th>名稱</th><th>數量</th><th>單價</th><th>購買日期</th><th colspan=2>圖書</th><th>出版社</th><th>備註</th></tr>'+r.map(function(x){var f=x.f;return'<tr><td>'+(x.i+1)+'</td><td>'+E(f.name)+'</td><td>'+E(f.qty)+'</td><td>'+E(f.price)+'</td><td>'+E(f.date)+'</td><td>'+(x.ph[0]?'<img src="'+x.ph[0]+'">':'')+'</td><td>'+(x.ph[1]?'<img src="'+x.ph[1]+'">':'')+'</td><td>'+E(f.pub)+'</td><td>□'+(f.st==="汰換"?"汰換":"良好")+'</td></tr>'}).join(""):'<tr><th>類別</th><th>廠商</th><th>品項</th><th>數量</th><th>單價</th><th>工資</th><th>運費</th><th>小計</th><th>照片</th><th>狀態</th></tr>'+r.map(function(x){var f=x.f;return'<tr><td>'+E(x.c)+'</td><td>'+E(f.vendor)+'</td><td>'+E(f.name)+'</td><td>'+E(f.qty)+'</td><td>'+E(f.price)+'</td><td>'+E(f.labor)+'</td><td>'+E(f.ship)+'</td><td>'+amt(x).toLocaleString()+'</td><td>'+x.ph.slice(0,2).map(function(p){return'<img src="'+p+'">'}).join("")+'</td><td>'+E(f.st)+'</td></tr>'}).join("")}
 function form(i){ed=i;var x=i>-1?L[i]:{c:CFG.cats[0],f:{},ph:[]};cur=x.ph.slice();
- $("fm").innerHTML='<label>'+CFG.cl+'</label><select id="f_c">'+CFG.cats.map(function(c){return'<option'+(c===x.c?' selected':'')+'>'+c+'</option>'}).join("")+'</select>'+CFG.f.map(function(d){var v=x.f[d[0]]||"",t=d[2]||"text";return'<label>'+d[1]+'</label>'+(t==="select"?'<select id="f_'+d[0]+'">'+d[3].map(function(o){return'<option'+(o===v?' selected':'')+'>'+o+'</option>'}).join("")+'</select>':t==="text"&&d[0]==="note"?'<textarea id="f_'+d[0]+'" rows="2">'+E(v)+'</textarea>':'<input id="f_'+d[0]+'" type="'+t+'" value="'+E(v)+'">')}).join("")+'<label>照片（最多 '+CFG.ph+' 張）</label><input type="file" id="f_ph" accept="image/*" multiple><div class="ph" id="f_pv"></div><div class="bar" style="margin-top:8px"><button class="b g" id="f_ok">儲存</button><button class="b" id="f_no">取消</button></div>';
+ $("fm").innerHTML='<label>'+CFG.cl+'</label><select id="f_c">'+(x.c&&CFG.cats.indexOf(x.c)<0?[x.c]:[]).concat(CFG.cats).map(function(c){return'<option'+(c===x.c?' selected':'')+'>'+c+'</option>'}).join("")+'</select>'+CFG.f.map(function(d){var v=x.f[d[0]]||"",t=d[2]||"text";return'<label>'+d[1]+'</label>'+(t==="select"?'<select id="f_'+d[0]+'">'+d[3].map(function(o){return'<option'+(o===v?' selected':'')+'>'+o+'</option>'}).join("")+'</select>':t==="text"&&d[0]==="note"?'<textarea id="f_'+d[0]+'" rows="2">'+E(v)+'</textarea>':'<input id="f_'+d[0]+'" type="'+t+'" value="'+E(v)+'">')}).join("")+'<label>照片（最多 '+CFG.ph+' 張）</label><input type="file" id="f_ph" accept="image/*" multiple><div class="ph" id="f_pv"></div><div class="bar" style="margin-top:8px"><button class="b g" id="f_ok">儲存</button><button class="b" id="f_no">取消</button></div>';
  $("fm").classList.add("show");pv();$("fm").scrollIntoView({behavior:"smooth"})}
 function pv(){$("f_pv").innerHTML=cur.map(function(p,k){return'<span><img src="'+p+'"><br><a href="#" data-x="'+k+'" style="font-size:12px;color:#c33">移除</a></span>'}).join("")}
 function shrink(f){return new Promise(function(r){var rd=new FileReader();rd.onload=function(){var m=new Image();m.onload=function(){var s=Math.min(1,700/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=m.width*s;c.height=m.height*s;c.getContext("2d").drawImage(m,0,0,c.width,c.height);r(c.toDataURL("image/jpeg",.7))};m.src=rd.result};rd.readAsDataURL(f)})}
 $("add").onclick=function(){form(-1)};$("cat").onchange=$("q").oninput=render;
 document.body.addEventListener("change",async function(e){if(e.target.id==="f_ph"){for(var f of e.target.files){if(cur.length<CFG.ph)cur.push(await shrink(f))}e.target.value="";pv()}});
 document.body.addEventListener("click",function(e){var t=e.target;
- if(t.dataset.x!==undefined){e.preventDefault();cur.splice(+t.dataset.x,1);pv()}
+ if(t.id==="ec"){$("cp").innerHTML='<label>'+CFG.cl+'（一行一個，可以新增、修改、刪除）</label><textarea id="cp_t" rows="8">'+E(CFG.cats.join("\n"))+'</textarea><div class="bar" style="margin-top:8px"><button class="b g" id="cp_ok">儲存</button><button class="b" id="cp_no">取消</button></div>';$("cp").classList.add("show")}
+ else if(t.id==="cp_no"){$("cp").classList.remove("show")}
+ else if(t.id==="cp_ok"){var a=[];$("cp_t").value.split(/\n/).forEach(function(l){l=l.trim();if(l&&a.indexOf(l)<0)a.push(l)});if(!a.length){alert("至少要留一個"+CFG.cl);return}CFG.cats=a;try{localStorage.setItem("adm:cats:"+T,JSON.stringify(a))}catch(e){}fillCat();$("cp").classList.remove("show");render()}
+ else if(t.dataset.x!==undefined){e.preventDefault();cur.splice(+t.dataset.x,1);pv()}
  else if(t.id==="f_no"){$("fm").classList.remove("show")}
  else if(t.id==="f_ok"){var x={c:$("f_c").value,f:{},ph:cur.slice()};CFG.f.forEach(function(d){x.f[d[0]]=$("f_"+d[0]).value});if(ed>-1)L[ed]=x;else L.push(x);save();$("fm").classList.remove("show");render()}
  else if(t.dataset.e!==undefined)form(+t.dataset.e);
@@ -103,7 +107,7 @@ async function mkDoc(title,heads,rows,wts){
 
 $("wd").onclick=async function(){var r=rows(),nm=T==="asset"?"財產清冊":"廠商報價",heads,data,w;
  if(T==="asset"){heads=["編號","名稱","數量","單價","購買日期","圖書（正面）","圖書（背面）","出版社","狀態","備註"];data=r.map(function(x){var f=x.f;return[x.i+1,f.name,f.qty,f.price,f.date,{img:x.ph[0]},{img:x.ph[1]},f.pub,f.st,f.note]});w=[1,3,1,1,2,3,3,2,1,2]}
- else{heads=["類別","廠商","品項","規格","數量","單價","小計","狀態","備註","照片"];data=r.map(function(x){var f=x.f;return[x.c,f.vendor,f.name,f.spec,f.qty,f.price,amt(x),f.st,f.note,{img:x.ph.slice(0,2)}]});w=[1,2,2,2,1,1,1,1,2,3]}
+ else{heads=["類別","廠商","品項","規格","數量","單價","工資","運費","小計","狀態","備註","照片"];data=r.map(function(x){var f=x.f;return[x.c,f.vendor,f.name,f.spec,f.qty,f.price,f.labor,f.ship,amt(x),f.st,f.note,{img:x.ph.slice(0,2)}]});w=[1,2,2,2,1,1,1,1,1,1,2,3]}
  await saveBlob(await mkDoc(nm,heads,data,w),nm+".docx")};
 render();
 </script></body></html>
