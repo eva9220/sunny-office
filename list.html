@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>清單｜Sunny Office</title>
+<style>
+:root{--bg:#fbf6ef;--ink:#4d4a47;--sub:#8c857d;--g:#86ab98;--p:#dc8f80;--line:#eadfd2;color-scheme:light}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding-bottom:env(safe-area-inset-bottom,0px)}
+header{background:var(--g);color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 12px;display:flex;align-items:center;gap:10px}
+header a{color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:10px;padding:4px 12px;text-decoration:none;font-size:14px}header b{font-size:18px}
+main{max-width:680px;margin:0 auto;padding:14px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+select,input,textarea{font:inherit;font-size:15px;border:1.5px solid var(--line);border-radius:12px;padding:7px 10px;background:#fffdf9;color:var(--ink);min-width:0}
+.b{border:1px solid var(--line);background:#fffdf9;border-radius:999px;padding:7px 14px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}
+.b.on{background:var(--p);border-color:var(--p);color:#fff}.b.g{background:var(--g);border-color:var(--g);color:#fff}
+.sum{background:#fffdf9;border-radius:18px;padding:10px 14px;margin-bottom:12px;box-shadow:0 3px 0 var(--line);font-size:14px}
+.fm{display:none;background:#fffdf9;border:2px dashed var(--g);border-radius:20px;padding:12px;margin-bottom:12px}.fm.show{display:block}
+.fm label{display:block;font-size:13px;color:var(--sub);margin:6px 0 2px}.fm input,.fm select,.fm textarea{width:100%}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.it{background:#fffdf9;border-radius:22px;padding:12px 14px;margin-bottom:12px;box-shadow:0 4px 0 var(--line)}
+.it h3{margin:0;font-size:17px}.it small{color:var(--sub)}.pr{color:var(--p);font-weight:800}
+.ph{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.ph img{width:84px;height:84px;object-fit:cover;border-radius:12px;border:1px solid var(--line)}
+.tag{display:inline-block;background:#e2f0e6;border-radius:999px;padding:0 10px;font-size:12px;margin-right:6px}
+#pt{display:none}
+@media print{header,.bar,.sum,.fm,#lst{display:none!important}#pt{display:table;width:100%;border-collapse:collapse}#pt td,#pt th{border:1px solid #000;padding:3px;font-size:10pt;text-align:center}#pt img{width:70px}body{background:#fff}}
+</style></head><body>
+<header><a href="index.html">← Sunny Office</a><b id="ttl"></b></header>
+<main>
+<div class="bar"><select id="cat"></select><input id="q" placeholder="搜尋" style="flex:1"><button class="b g" id="add">＋ 新增</button></div>
+<div class="fm" id="fm"></div>
+<div class="sum" id="sum"></div>
+<div class="bar"><button class="b" id="xl">📥 匯出 Excel</button><button class="b" id="wd">📝 匯出 Word</button><button class="b" id="pp">🖨️ 列印清冊</button></div>
+<div id="lst"></div>
+<table id="pt"></table>
+</main>
+<script>
+var T=new URLSearchParams(location.search).get("t")==="asset"?"asset":"vendor",KEY="adm:"+T;
+var CFG={vendor:{ttl:"🧰 廠商報價",cats:["裝潢","招牌","廚具","地墊","書包","嬰兒床","其他"],f:[["vendor","廠商"],["name","品項"],["spec","規格"],["qty","數量","number"],["price","單價（報價）","number"],["date","報價日期","date"],["st","狀態","select",["比較中","已選定","未選用"]],["note","備註","text"]],ph:6,key:"vendor",cl:"類別"},
+asset:{ttl:"📚 財產清冊",cats:["書籍","教玩具","設備","家具","其他"],f:[["name","名稱"],["qty","數量","number"],["price","單價","number"],["date","購買日期","date"],["pub","出版社／廠牌"],["st","狀態","select",["良好","汰換"]],["note","備註","text"]],ph:2,key:"pub",cl:"分類"}}[T];
+document.getElementById("ttl").textContent=CFG.ttl;document.title=CFG.ttl+"｜Sunny Office";
+var $=function(i){return document.getElementById(i)},L=[];try{L=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(L))}catch(e){alert("儲存空間已滿，請先匯出 Excel 並刪除部分照片")}}
+var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")},ed=-1,cur=[];
+$("cat").innerHTML='<option value="">全部'+CFG.cl+'</option>'+CFG.cats.map(function(c){return'<option>'+c+'</option>'}).join("");
+function rows(){var c=$("cat").value,q=$("q").value.trim();return L.map(function(x,i){x.i=i;return x}).filter(function(x){return(!c||x.c===c)&&(!q||JSON.stringify(x.f).indexOf(q)>-1||x.c.indexOf(q)>-1)})}
+function amt(x){return(+x.f.qty||0)*(+x.f.price||0)}
+function render(){var r=rows(),tot=r.reduce(function(s,x){return s+amt(x)},0);
+ $("sum").innerHTML="共 <b>"+r.length+"</b> 筆　合計金額 <span class='pr'>$"+tot.toLocaleString()+"</span>";
+ $("lst").innerHTML=r.map(function(x){var f=x.f;return'<div class="it"><h3>'+(T==="asset"?"#"+(x.i+1)+" ":"")+E(f.name||"（未命名）")+'</h3><small><span class="tag">'+E(x.c)+'</span>'+E(f[CFG.key]||"")+(f.st?' ・ '+E(f.st):'')+(f.date?' ・ '+E(f.date):'')+'</small><div>數量 '+E(f.qty||0)+' × $'+E(f.price||0)+' = <span class="pr">$'+amt(x).toLocaleString()+'</span></div>'+(f.spec?'<div><small>'+E(f.spec)+'</small></div>':'')+(f.note?'<div><small>備註：'+E(f.note)+'</small></div>':'')+'<div class="ph">'+x.ph.map(function(p){return'<img src="'+p+'">'}).join("")+'</div><button class="b" data-e="'+x.i+'">編輯</button> <button class="b" data-d="'+x.i+'">刪除</button></div>'}).join("")||'<p style="color:#8c857d;text-align:center">還沒有資料，按「＋ 新增」開始。</p>';
+ $("pt").innerHTML=T==="asset"?'<tr><th>編號</th><th>名稱</th><th>數量</th><th>單價</th><th>購買日期</th><th colspan=2>圖書</th><th>出版社</th><th>備註</th></tr>'+r.map(function(x){var f=x.f;return'<tr><td>'+(x.i+1)+'</td><td>'+E(f.name)+'</td><td>'+E(f.qty)+'</td><td>'+E(f.price)+'</td><td>'+E(f.date)+'</td><td>'+(x.ph[0]?'<img src="'+x.ph[0]+'">':'')+'</td><td>'+(x.ph[1]?'<img src="'+x.ph[1]+'">':'')+'</td><td>'+E(f.pub)+'</td><td>□'+(f.st==="汰換"?"汰換":"良好")+'</td></tr>'}).join(""):'<tr><th>類別</th><th>廠商</th><th>品項</th><th>數量</th><th>單價</th><th>照片</th><th>狀態</th></tr>'+r.map(function(x){var f=x.f;return'<tr><td>'+E(x.c)+'</td><td>'+E(f.vendor)+'</td><td>'+E(f.name)+'</td><td>'+E(f.qty)+'</td><td>'+E(f.price)+'</td><td>'+x.ph.slice(0,2).map(function(p){return'<img src="'+p+'">'}).join("")+'</td><td>'+E(f.st)+'</td></tr>'}).join("")}
+function form(i){ed=i;var x=i>-1?L[i]:{c:CFG.cats[0],f:{},ph:[]};cur=x.ph.slice();
+ $("fm").innerHTML='<label>'+CFG.cl+'</label><select id="f_c">'+CFG.cats.map(function(c){return'<option'+(c===x.c?' selected':'')+'>'+c+'</option>'}).join("")+'</select>'+CFG.f.map(function(d){var v=x.f[d[0]]||"",t=d[2]||"text";return'<label>'+d[1]+'</label>'+(t==="select"?'<select id="f_'+d[0]+'">'+d[3].map(function(o){return'<option'+(o===v?' selected':'')+'>'+o+'</option>'}).join("")+'</select>':t==="text"&&d[0]==="note"?'<textarea id="f_'+d[0]+'" rows="2">'+E(v)+'</textarea>':'<input id="f_'+d[0]+'" type="'+t+'" value="'+E(v)+'">')}).join("")+'<label>照片（最多 '+CFG.ph+' 張）</label><input type="file" id="f_ph" accept="image/*" multiple><div class="ph" id="f_pv"></div><div class="bar" style="margin-top:8px"><button class="b g" id="f_ok">儲存</button><button class="b" id="f_no">取消</button></div>';
+ $("fm").classList.add("show");pv();$("fm").scrollIntoView({behavior:"smooth"})}
+function pv(){$("f_pv").innerHTML=cur.map(function(p,k){return'<span><img src="'+p+'"><br><a href="#" data-x="'+k+'" style="font-size:12px;color:#c33">移除</a></span>'}).join("")}
+function shrink(f){return new Promise(function(r){var rd=new FileReader();rd.onload=function(){var m=new Image();m.onload=function(){var s=Math.min(1,700/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=m.width*s;c.height=m.height*s;c.getContext("2d").drawImage(m,0,0,c.width,c.height);r(c.toDataURL("image/jpeg",.7))};m.src=rd.result};rd.readAsDataURL(f)})}
+$("add").onclick=function(){form(-1)};$("cat").onchange=$("q").oninput=render;
+document.body.addEventListener("change",async function(e){if(e.target.id==="f_ph"){for(var f of e.target.files){if(cur.length<CFG.ph)cur.push(await shrink(f))}e.target.value="";pv()}});
+document.body.addEventListener("click",function(e){var t=e.target;
+ if(t.dataset.x!==undefined){e.preventDefault();cur.splice(+t.dataset.x,1);pv()}
+ else if(t.id==="f_no"){$("fm").classList.remove("show")}
+ else if(t.id==="f_ok"){var x={c:$("f_c").value,f:{},ph:cur.slice()};CFG.f.forEach(function(d){x.f[d[0]]=$("f_"+d[0]).value});if(ed>-1)L[ed]=x;else L.push(x);save();$("fm").classList.remove("show");render()}
+ else if(t.dataset.e!==undefined)form(+t.dataset.e);
+ else if(t.dataset.d!==undefined&&t.dataset.d!=="x"){if(t.dataset.ok===t.dataset.d){L.splice(+t.dataset.d,1);save();render()}else{t.dataset.ok=t.dataset.d;t.textContent="再按一次確認刪除"}}});
+$("pp").onclick=function(){try{window.print()}catch(e){alert("這個瀏覽器不能列印，請改用 Safari 或 Chrome 開啟")}};
+// ===== 匯出 Excel（.xlsx，不含照片）=====
+function crc32(u){var t=crc32.t;if(!t){t=crc32.t=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}}var c=-1;for(var i=0;i<u.length;i++)c=t[(c^u[i])&255]^(c>>>8);return(c^-1)>>>0}
+function zip(files,mime){var P=[],C=[],off=0,en=new TextEncoder();files.forEach(function(f){var nb=en.encode(f.n),cr=crc32(f.d),h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(12,0x21,true);h.setUint32(14,cr,true);h.setUint32(18,f.d.length,true);h.setUint32(22,f.d.length,true);h.setUint16(26,nb.length,true);P.push(new Uint8Array(h.buffer),nb,f.d);var c=new DataView(new ArrayBuffer(46));c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(14,0x21,true);c.setUint32(16,cr,true);c.setUint32(20,f.d.length,true);c.setUint32(24,f.d.length,true);c.setUint16(28,nb.length,true);c.setUint32(42,off,true);C.push(new Uint8Array(c.buffer),nb);off+=30+nb.length+f.d.length});var cs=0;C.forEach(function(x){cs+=x.length});var e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);return new Blob(P.concat(C,[new Uint8Array(e.buffer)]),{type:mime||"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})}
+function col(n){return String.fromCharCode(65+n)}
+$("xl").onclick=async function(){var r=rows(),H=[T==="asset"?"編號":"序號",CFG.cl].concat(CFG.f.map(function(d){return d[1]})).concat(["小計"]);
+ var data=[H].concat(r.map(function(x,k){return[T==="asset"?x.i+1:k+1,x.c].concat(CFG.f.map(function(d){var v=x.f[d[0]];return d[2]==="number"?(+v||0):(v||"")})).concat([amt(x)])}));
+ var sd=data.map(function(row,ri){return'<row r="'+(ri+1)+'">'+row.map(function(v,ci){var ref=col(ci)+(ri+1);return typeof v==="number"?'<c r="'+ref+'"><v>'+v+'</v></c>':'<c r="'+ref+'" t="inlineStr"><is><t xml:space="preserve">'+E(v)+'</t></is></c>'}).join("")+'</row>'}).join("");
+ var X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',en=new TextEncoder(),F=function(s){return en.encode(s)};
+ var bl=zip([{n:"[Content_Types].xml",d:F(X+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>')},
+ {n:"_rels/.rels",d:F(X+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>')},
+ {n:"xl/workbook.xml",d:F(X+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+(T==="asset"?"財產清冊":"廠商報價")+'" sheetId="1" r:id="rId1"/></sheets></workbook>')},
+ {n:"xl/_rels/workbook.xml.rels",d:F(X+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>')},
+ {n:"xl/worksheets/sheet1.xml",d:F(X+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+sd+'</sheetData></worksheet>')}]);
+ var name=(T==="asset"?"財產清冊":"廠商報價")+".xlsx",dl=null;
+ try{if(window.claude&&claude.use)dl=await claude.use("downloads")}catch(e){}
+ if(dl){try{await dl.save({filename:name,data:bl})}catch(e){if(!e||e.code!=="declined")alert("無法儲存："+((e&&(e.message||e.code))||""))}}
+ else{var a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}};
+async function saveBlob(bl,name){var dl=null;try{if(window.claude&&claude.use)dl=await claude.use("downloads")}catch(x){}
+ if(dl){try{await dl.save({filename:name,data:bl})}catch(x){if(!x||x.code!=="declined")alert("無法儲存："+((x&&(x.message||x.code))||""))}}
+ else{var a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}}
+async function mkDoc(title,heads,rows,wts){
+ var X=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")},media=[],idn=0,RL="",W=15600;
+ wts=wts||heads.map(function(){return 1});var tw=wts.reduce(function(a,b){return a+b},0),cw=wts.map(function(w){return Math.round(W*w/tw)});
+ function load(u){return new Promise(function(r){var i=new Image();i.onload=function(){r([i.naturalWidth,i.naturalHeight])};i.onerror=function(){r(null)};i.src=u})}
+ async function im(u,cm){if(!u||u.indexOf("data:")!==0)return"";var d=await load(u),m=u.match(/^data:image\/(\w+);base64,(.*)$/);if(!d||!m)return"";idn++;var ext=m[1]==="jpeg"?"jpg":m[1],bin=atob(m[2]),u8=new Uint8Array(bin.length);for(var k=0;k<bin.length;k++)u8[k]=bin.charCodeAt(k);media.push({n:"word/media/image"+idn+"."+ext,d:u8});RL+='<Relationship Id="rId'+idn+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image'+idn+'.'+ext+'"/>';var cx=Math.round(cm*360000),cy=Math.round(cx*d[1]/d[0]);
+  return'<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="'+cx+'" cy="'+cy+'"/><wp:docPr id="'+idn+'" name="img'+idn+'"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="'+idn+'" name="img'+idn+'"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId'+idn+'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>'}
+ function run(t,sz,b){return'<w:r><w:rPr><w:rFonts w:eastAsia="Microsoft JhengHei"/>'+(b?'<w:b/>':'')+'<w:sz w:val="'+sz+'"/></w:rPr><w:t xml:space="preserve">'+X(t)+'</w:t></w:r>'}
+ function para(i,jc){return'<w:p><w:pPr><w:spacing w:before="0" w:after="0"/>'+(jc?'<w:jc w:val="'+jc+'"/>':'')+'</w:pPr>'+i+'</w:p>'}
+ function cell(w,inner,shd){return'<w:tc><w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/>'+(shd?'<w:shd w:val="clear" w:color="auto" w:fill="'+shd+'"/>':'')+'<w:vAlign w:val="center"/></w:tcPr>'+inner+'</w:tc>'}
+ var tr='<w:tr><w:trPr><w:cantSplit/></w:trPr>'+heads.map(function(h,i){return cell(cw[i],para(run(h,20,true),"center"),"E6F1EA")}).join("")+'</w:tr>';
+ for(var r=0;r<rows.length;r++){var cs="";for(var c=0;c<heads.length;c++){var v=rows[r][c],inner="";
+  if(v&&typeof v==="object"){var arr=[].concat(v.img||[]),ps="";for(var k=0;k<arr.length;k++)ps+=para(await im(arr[k],Math.min(3.2,cw[c]/567-0.4)),"center");inner=ps||para("")}
+  else inner=para(run(v===0||v?v:"",18))+"";cs+=cell(cw[c],inner)}
+  tr+='<w:tr><w:trPr><w:cantSplit/></w:trPr>'+cs+'</w:tr>'}
+ var bd=["top","left","bottom","right","insideH","insideV"].map(function(s){return'<w:'+s+' w:val="single" w:sz="8" w:space="0" w:color="000000"/>'}).join("");
+ var tbl='<w:tbl><w:tblPr><w:tblW w:w="'+W+'" w:type="dxa"/><w:tblBorders>'+bd+'</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="60" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>'+cw.map(function(w){return'<w:gridCol w:w="'+w+'"/>'}).join("")+'</w:tblGrid>'+tr+'</w:tbl>';
+ var H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',en=new TextEncoder(),F=function(s){return en.encode(s)};
+ var doc=H+'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>'+para(run(title,32,true),"center")+para("")+tbl+'<w:p/><w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="600" w:right="600" w:bottom="600" w:left="600" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr></w:body></w:document>';
+ return zip([{n:"[Content_Types].xml",d:F(H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpg" ContentType="image/jpeg"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>')},{n:"_rels/.rels",d:F(H+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>')},{n:"word/document.xml",d:F(doc)},{n:"word/_rels/document.xml.rels",d:F(H+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+RL+'</Relationships>')}].concat(media),"application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+
+$("wd").onclick=async function(){var r=rows(),nm=T==="asset"?"財產清冊":"廠商報價",heads,data,w;
+ if(T==="asset"){heads=["編號","名稱","數量","單價","購買日期","圖書（正面）","圖書（背面）","出版社","狀態","備註"];data=r.map(function(x){var f=x.f;return[x.i+1,f.name,f.qty,f.price,f.date,{img:x.ph[0]},{img:x.ph[1]},f.pub,f.st,f.note]});w=[1,3,1,1,2,3,3,2,1,2]}
+ else{heads=["類別","廠商","品項","規格","數量","單價","小計","狀態","備註","照片"];data=r.map(function(x){var f=x.f;return[x.c,f.vendor,f.name,f.spec,f.qty,f.price,amt(x),f.st,f.note,{img:x.ph.slice(0,2)}]});w=[1,2,2,2,1,1,1,1,2,3]}
+ await saveBlob(await mkDoc(nm,heads,data,w),nm+".docx")};
+render();
+</script></body></html>
