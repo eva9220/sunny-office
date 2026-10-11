@@ -50,4 +50,4 @@ var L=[["QUOTES","廠商報價","裝潢・招牌・廚具・地墊・書包・�
 ["CONTRACT","定型化契約","契約資料整理・附件檢核","docs.html?m=contract","paper","#d3b896","#f3eadc"],
 ["EVALUATION","評鑑自我檢核","依評鑑指標檢查文件","","check","#b9a2d6","#ece4f5"]];
 document.getElementById("g").innerHTML=L.map(function(l){var h=l[3];return'<'+(h?'a href="'+h+'"':'div')+' class="card'+(h?'':' soon')+'" style="--k:'+l[5]+';--bg2:'+l[6]+'"><div class="ic">'+(IC[l[4]]||l[4])+'</div><div class="tx"><small>'+l[0]+'</small><b>'+l[1]+'</b><span>'+l[2]+'</span>'+(h?'':'<span class="bd">即將推出</span>')+'</div>'+(h?'<div class="ar">›</div>':'')+'</'+(h?'a':'div')+'>'}).join("")
-</script></body></html>
+</script><script type="module">import { SF } from "./cloud.js"; SF.gate(function(){});</script></body></html>

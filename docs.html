@@ -23,7 +23,8 @@ td.c{text-align:right;color:var(--p);font-weight:700;white-space:nowrap}tfoot td
 <div class="bar"><button class="b g" id="add">＋ 新增一列</button><button class="b" id="xl">📥 匯出 Excel</button><button class="b" id="wd">📝 匯出 Word</button><button class="b" id="pp">🖨️ 列印</button></div>
 <div class="tw"><table><thead id="th"></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table></div>
 <p class="note" style="margin-top:12px">🔒 網站是公開的，請勿填身分證字號、住址、電話。資料只存在這支手機的瀏覽器，請定期匯出 Excel 備份。</p></main>
-<script>
+<script type="module">
+import { SF } from "./cloud.js";
 var ST=["未備","進行中","已備齊"],ST2=["未備","草稿","已核可"];
 var DOCS=["概況表","計畫書","土地及建物登記簿謄本","建築物使用執照影本、竣工圖","土地使用同意書（如適用）","五年以上法院公證租賃契約","消防安全設備圖說、平面圖及位置圖","托嬰中心組織章程","消防及建築物公共安全檢修申報書","托嬰中心收托管理辦法","歲入（出）預算表","財產清冊及經費來源","收退費基準及服務規定","職工人員一覽表及相關證明文件","課程表、各月齡作息表","履行營運擔保證明影本","投保公共意外責任保險之保險單影本","定型化契約","特約診所文件","室內裝修平面圖、材料檢討表及防火證明"];
 var CT=["審閱期間（日）","服務期間","適應期間（日）","收托時段","註冊費（6個月）","月費","保險費（代收代付）","餐點（含副食品）費","延長托育費（每小時）","逾時費（每小時）","特約／指定醫院","管轄法院","負責人","立案字號"];
@@ -37,9 +38,9 @@ MODS.build={ttl:"🏗️ 建照與開工流程",tabs:[{k:"flow",n:"流程步驟"
 var M=MODS[new URLSearchParams(location.search).get("m")]||MODS.register,CUR=M.tabs[0],$=function(i){return document.getElementById(i)};
 var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")};
 $("ttl").textContent=M.ttl;document.title=M.ttl+"｜Sunny Office";
-function key(){return"adm:docs:"+(new URLSearchParams(location.search).get("m")||"register")+":"+CUR.k}
-var D=[];function load(){D=null;try{D=JSON.parse(localStorage.getItem(key()))}catch(e){}if(!D)D=JSON.parse(JSON.stringify(CUR.rows))}
-function save(){try{localStorage.setItem(key(),JSON.stringify(D))}catch(e){}}
+function key(){return("docs_"+(new URLSearchParams(location.search).get("m")||"register")+"_"+CUR.k).replace(/[^a-zA-Z0-9_\-]/g,"_")}
+var D=[],unsub=null;function load(){if(unsub)unsub();D=JSON.parse(JSON.stringify(CUR.rows));unsub=SF.watchDoc("docs",key(),function(d,local){if(local)return;D=d&&d.data?JSON.parse(d.data):JSON.parse(JSON.stringify(CUR.rows));render()})}
+function save(){SF.set("docs",key(),{data:JSON.stringify(D)})}
 function calcRow(r){CUR.cols.forEach(function(c,i){if(c[1]==="calc")r[i]=c[2](r)})}
 function render(){D.forEach(calcRow);$("nt").textContent=CUR.note;
  $("tabs").innerHTML=M.tabs.length>1?M.tabs.map(function(t){return'<button class="b'+(t===CUR?' on':'')+'" data-t="'+t.k+'">'+t.n+'</button>'}).join(""):"";
@@ -88,5 +89,5 @@ async function mkDoc(title,heads,rows,wts){
  return zip([{n:"[Content_Types].xml",d:F(H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpg" ContentType="image/jpeg"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>')},{n:"_rels/.rels",d:F(H+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>')},{n:"word/document.xml",d:F(doc)},{n:"word/_rels/document.xml.rels",d:F(H+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+RL+'</Relationships>')}].concat(media),"application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
 
 $("wd").onclick=async function(){var nm=M.ttl.replace(/^\S+\s/,"")+"_"+CUR.n;await saveBlob(await mkDoc(M.ttl.replace(/^\S+\s/,"")+"　"+CUR.n,CUR.cols.map(function(c){return c[0]}),D.map(function(r){return CUR.cols.map(function(c,ci){var v=r[ci];return c[1]==="calc"||c[1]==="num"?(v===""?"":Number(v).toLocaleString()):v})})),nm+".docx")};
-load();render();
+SF.gate(function(){load();render();});
 </script></body></html>
