@@ -117,10 +117,10 @@ export const SF = {
       (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() })), snap.metadata.hasPendingWrites),
       onErr);
   },
-  watchDoc(name, id, cb) {
+  watchDoc(name, id, cb, err) {
     return onSnapshot(doc(db, name, id),
       (snap) => cb(snap.exists() ? snap.data() : null, snap.metadata.hasPendingWrites),
-      onErr);
+      (e) => { onErr(e); if (err) err(e); });
   },
   add: (name, data) => safe(addDoc(collection(db, name), data)),
   addStrict: (name, data) => addDoc(collection(db, name), data),
