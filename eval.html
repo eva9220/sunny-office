@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>評鑑自我檢核｜Sunny Office</title>
+<style>
+:root{--bg:#fbf6ef;--ink:#4d4a47;--sub:#7d766f;--g:#86ab98;--p:#dc8f80;--line:#eadfd2;color-scheme:light}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding-bottom:env(safe-area-inset-bottom,0px)}
+header{background:var(--g);color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 12px;display:flex;align-items:center;gap:10px}
+header a{color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:10px;padding:4px 12px;text-decoration:none;font-size:14px}header b{font-size:18px}
+main{max-width:820px;margin:0 auto;padding:14px}
+.note{background:#fffdf9;border-radius:16px;padding:8px 12px;font-size:13px;color:var(--sub);margin-bottom:10px;box-shadow:0 3px 0 var(--line)}
+.pg{height:10px;background:#eadfd2;border-radius:99px;overflow:hidden;margin:4px 0 10px}.pg i{display:block;height:100%;background:var(--g)}
+h2{font-size:17px;margin:18px 0 8px}
+.it{background:#fffdf9;border-radius:18px;padding:12px 14px;margin-bottom:10px;box-shadow:0 3px 0 var(--line)}
+.it h3{margin:0;font-size:16px}.it h3 i{font-style:normal;color:#b5533f}.it p{margin:2px 0 8px;font-size:13px;color:var(--sub)}
+.ctl{display:grid;grid-template-columns:120px 110px 1fr;gap:8px;margin-top:8px}
+select,input{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;padding:6px 8px;background:#fff;color:var(--ink);width:100%;min-width:0}
+.ch{display:flex;flex-wrap:wrap;gap:6px}.ch a{font-size:13px;border:1px solid var(--g);border-radius:999px;padding:4px 11px;text-decoration:none;color:#3f6a55;background:#f3f8f5}
+@media(max-width:520px){.ctl{grid-template-columns:1fr 1fr}.ctl input.n{grid-column:1/-1}}
+</style></head><body>
+<header><a href="index.html">← Sunny Office</a><b>✅ 評鑑自我檢核</b></header>
+<main><div class="note">依 114 年度托育機構評鑑指標整理。實際受評前請確認當年度最新版本。「負責」預設帶入手寫標註，可以修改。</div>
+<div id="pr"></div><div id="l"></div></main>
+<script type="module">
+import { SF } from "./cloud.js";
+import { EV_LIST } from "./evalforms.js";
+var S={},ST=["未開始","準備中","已完成"],$=function(i){return document.getElementById(i)};
+var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")};
+var ALL=[];EV_LIST.forEach(function(g){ALL=ALL.concat(g.items)});
+function prog(){var d=ALL.filter(function(i){return(S[i[0]]||{}).st==="已完成"}).length;$("pr").innerHTML='<div>完成 '+d+' / '+ALL.length+' 項指標</div><div class="pg"><i style="width:'+d/ALL.length*100+'%"></i></div>'}
+function render(){prog();$("l").innerHTML=EV_LIST.map(function(g){return"<h2>"+g.s+"</h2>"+g.items.map(function(i){var v=S[i[0]]||{};return'<div class="it"><h3>'+(i[1]?"<i>★</i> ":"")+E(i[2])+'</h3><p>'+E(i[4])+'</p><div class="ch">'+i[5].map(function(f){return'<a href="'+E(f[0])+'">'+E(f[1])+'</a>'}).join("")+'</div><div class="ctl"><select data-i="'+i[0]+'" data-f="st" aria-label="進度">'+ST.map(function(o){return"<option"+(o===v.st?" selected":"")+">"+o+"</option>"}).join("")+'</select><input data-i="'+i[0]+'" data-f="who" aria-label="負責" placeholder="負責" value="'+E(v.who==null?i[3]:v.who)+'"><input class="n" data-i="'+i[0]+'" data-f="note" aria-label="備註" placeholder="備註" value="'+E(v.note)+'"></div></div>'}).join("")}).join("")}
+document.body.addEventListener("change",function(e){var t=e.target;if(t.dataset.i){(S[t.dataset.i]=S[t.dataset.i]||{})[t.dataset.f]=t.value;SF.set("docs","docs_ev_check",{data:JSON.stringify(S)});prog()}});
+SF.gate(function(){render();SF.watchDoc("docs","docs_ev_check",function(d,local){if(local)return;S=d&&d.data?JSON.parse(d.data):{};render()})});
+</script></body></html>
