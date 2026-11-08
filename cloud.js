@@ -125,6 +125,7 @@ export const SF = {
   add: (name, data) => safe(addDoc(collection(db, name), data)),
   addStrict: (name, data) => addDoc(collection(db, name), data),
   set: (name, id, data) => safe(setDoc(doc(db, name, id), data)),
+  setStrict: (name, id, data) => setDoc(doc(db, name, id), data),
   remove: (name, id) => safe(deleteDoc(doc(db, name, id))),
   logout: () => signOut(auth)
 };
