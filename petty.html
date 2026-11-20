@@ -50,7 +50,7 @@ table.s{width:100%;border-collapse:collapse;font-size:14px}table.s td,table.s th
 .pg .dg td{font-size:9.5pt;padding:1px}.pg .dv td{height:10mm;font-size:12pt}
 .pg .sg{margin:7mm 0 4mm;font-size:11pt;display:flex;justify-content:space-between}.pg .sg i{font-style:normal;color:#bbb;letter-spacing:.3em;margin-left:2mm}
 .pg .rd u{display:inline-block;min-width:9mm;text-align:center;text-decoration:none;border-bottom:1px solid #000;margin:0 1mm}
-.pg .dg td.bl{border-left:2px solid #000}.pg .dg td.ln{position:relative}.pg .dg td.ln:after{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px solid #333}
+.pg .dg td.bl{border-left:2px solid #000}.pg .dg td.ln{position:relative}.pg .dg td.ln:after{content:"";position:absolute;left:-1px;right:-1px;top:50%;border-top:1.5px solid #333}
 .pg .rc u{display:inline-block;min-width:12mm;border-bottom:1px solid #000;text-decoration:none}
 .pg .hint{text-align:center;font-size:10.5pt;margin:2mm 0 3mm}
 .pg .itm th{background:#ddd;text-align:left}.pg .itm td{height:7.4mm;text-align:left}.pg .itm td.n{text-align:right}
@@ -149,7 +149,7 @@ function setUI(){return'<div class="card"><h3>設定</h3><label class="note">零
 function digits(n){var c=Math.round(N(n)*100),s=String(c),cells=9,a=[];for(var i=0;i<cells;i++){var k=s.length-cells+i;a.push(k>=0?s[k]:"")}return a}
 function vPage(v){var d=roc(v.date),c=Math.round(tot(v)*100),s=String(c),cells=[];for(var k=0;k<9;k++){var q=s.length-9+k;cells.push(q>=0?s[q]:"")}
  var first=cells.findIndex(function(x){return x!==""});var rows=v.items.slice();while(rows.length<17)rows.push({});
- var dgTd=cells.map(function(x,k){var cls=(k===0||k===3||k===7)?"bl":"";if(k<first)cls+=" ln";if(k>=7&&x==="0")x="—";return'<td class="'+cls+'">'+x+'</td>'}).join("");
+ var dgTd=cells.map(function(x,k){var cls=(k===0||k===3||k===7)?"bl":"";if(k<first||(k>=7&&x==="0")){cls+=" ln";x=""}return'<td class="'+cls+'">'+x+'</td>'}).join("");
  return'<div class="pg"><h1>臺南市私立初晴之森托嬰中心經費支出表</h1><div class="rd">中華民國<u>'+d[0]+'</u>年<u>'+d[1]+'</u>月<u>'+d[2]+'</u>日</div>'+
  '<table class="dg"><colgroup><col style="width:13%"><col style="width:17%">'+'<col style="width:4.4%">'.repeat(9)+'<col></colgroup><tr><td rowspan="2">編號</td><td rowspan="2">科目</td><td colspan="9">金額總計</td><td rowspan="2">用途類別</td></tr><tr>'+["百","十","萬","千","百","十","元","角","分"].map(function(x,k){return'<td'+((k===0||k===3||k===7)?' class="bl"':'')+'>'+x+"</td>"}).join("")+'</tr><tr class="dv"><td></td><td>'+E(v.subj)+'</td>'+dgTd+'<td>'+E(v.cat||v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</td></tr></table>'+
  '<div class="sg"><span>製表:<i>請核章</i></span><span>--出納:<i>請核章</i></span><span>---會計:<i>請核章</i></span><span>--- 主任:<i>請核章</i></span></div><div class="hint">(請浮貼支出單據後請蓋騎縫章)</div>'+
