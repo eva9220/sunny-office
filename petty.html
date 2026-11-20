@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>零用金｜Sunny Office</title>
+<style>
+:root{--bg:#fbf6ef;--ink:#4d4a47;--sub:#8c857d;--g:#86ab98;--p:#dc8f80;--y:#e6c16a;--line:#eadfd2;color-scheme:light}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding-bottom:env(safe-area-inset-bottom,0px)}
+header{background:#c9a35c;color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 12px;display:flex;align-items:center;gap:10px}
+header a{color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:10px;padding:4px 12px;text-decoration:none;font-size:14px}header b{font-size:18px}
+main{max-width:720px;margin:0 auto;padding:14px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+select,input,textarea{font:inherit;font-size:15px;border:1.5px solid var(--line);border-radius:12px;padding:7px 10px;background:#fffdf9;color:var(--ink);min-width:0}
+input[type=date],input[type=month]{-webkit-appearance:none;appearance:none;min-height:42px}
+.b{border:1px solid var(--line);background:#fffdf9;border-radius:999px;padding:7px 14px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}
+.b.on{background:var(--p);border-color:var(--p);color:#fff}.b.g{background:var(--g);border-color:var(--g);color:#fff}.b.y{background:#c9a35c;border-color:#c9a35c;color:#fff}
+.b:disabled{opacity:.5}
+.card{background:#fffdf9;border-radius:20px;padding:12px 14px;margin-bottom:12px;box-shadow:0 4px 0 var(--line)}
+.card h3{margin:0 0 6px;font-size:17px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:15px}.kv b{text-align:right;font-variant-numeric:tabular-nums}
+.big{font-size:22px}
+.ok{color:#3f8a5c;font-weight:800}.bad{color:#c4513e;font-weight:800}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 12px}
+.it{background:#fffdf9;border-radius:18px;padding:10px 14px;margin-bottom:10px;box-shadow:0 3px 0 var(--line)}
+.it .t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.it .t b{font-size:16px}
+.it small{color:var(--sub)}.amt{color:var(--p);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.st{display:inline-block;border-radius:999px;padding:0 9px;font-size:12px;margin-right:6px}.st.u{background:#fbe9c8}.st.r{background:#e2f0e6}
+.fm{background:#fffdf9;border:2px dashed #c9a35c;border-radius:20px;padding:12px;margin-bottom:12px}
+.fm label{display:block;font-size:13px;color:var(--sub);margin:6px 0 2px}.fm input,.fm select,.fm textarea{width:100%}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ir{border:1.5px dashed var(--line);border-radius:14px;padding:8px;margin:6px 0;display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px}
+.ir .w{grid-column:1/-1}.ir .bt{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:14px}
+.den{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center}.den span:last-child{text-align:right;font-variant-numeric:tabular-nums;min-width:80px}
+.ph{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.ph img{width:80px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+table.s{width:100%;border-collapse:collapse;font-size:14px}table.s td,table.s th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left}table.s td.n,table.s th.n{text-align:right;font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--sub)}
+#pv{display:none}
+/* 列印：經費支出表、封面、撥補明細 */
+.pg{font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;color:#000;page-break-after:always;padding:0}.pg:last-child{page-break-after:auto}
+.pg h1{font-size:17pt;text-align:center;margin:0;text-decoration:underline;font-weight:500}
+.pg .rd{text-align:right;font-size:11pt;margin:2px 0 4px}
+.pg table{width:100%;border-collapse:collapse;table-layout:fixed}.pg td,.pg th{border:1px solid #000;font-size:11pt;padding:3px;text-align:center;font-weight:400;word-break:break-all}
+.pg .dg td{font-size:9.5pt;padding:1px}.pg .dv td{height:10mm;font-size:12pt}
+.pg .sg{margin:7mm 0 4mm;font-size:11pt;display:flex;justify-content:space-between}
+.pg .hint{text-align:center;font-size:10.5pt;margin:2mm 0 3mm}
+.pg .itm th{background:#ddd;text-align:left}.pg .itm td{height:7.4mm;text-align:left}.pg .itm td.n{text-align:right}
+.pg .rc{margin-top:8mm;font-size:11.5pt;line-height:2.2}
+.pg.cv{display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:255mm;padding:80mm 0 50mm;font-size:16pt;text-align:center;line-height:2.1}
+@media print{@page{size:A4 portrait;margin:14mm 16mm}body{background:#fff}header,main{display:none!important}#pv{display:block}}
+</style></head><body>
+<header><a href="index.html">← Sunny Office</a><b>💰 零用金</b></header>
+<main id="app"><p class="note">載入中…</p></main>
+<div id="pv"></div>
+<script type="module">
+import { SF } from "./cloud.js";
+var $=function(i){return document.getElementById(i)},KEY="docs_staff_petty",PHK="docs_staff_pettyph_";
+var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")};
+var N=function(v){v=+v;return isFinite(v)?v:0},M=function(v){return Math.round(N(v)).toLocaleString()};
+var DEN=[1000,500,200,100,50,10,5,1];
+var DEF={quota:20000,subj:["人事費","業務費","設備費","雜支"],cats:[["臺電","業務費"],["水費","業務費"],["文具","業務費"],["清潔","業務費"],["教具採買","業務費"],["老師時薪費用","人事費"],["交際費","雜支"]],v:[],reps:[],counts:[]};
+function subjOf(c){var m=D.cats.filter(function(x){return x[0]===c})[0];return m?m[1]:""}
+var D=null,tab="v",ed=null,cur=null,mon="",fs="",cnt={};
+function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function roc(d){var m=String(d||"").match(/^(\d{4})-(\d\d)-(\d\d)/);return m?[m[1]-1911,+m[2],+m[3]]:["","",""]}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function tot(v){return v.items.reduce(function(s,i){return s+N(i.p)*N(i.q)},0)}
+function unpaid(){return D.v.filter(function(v){return!v.rep})}
+function unpaidSum(){return unpaid().reduce(function(s,v){return s+tot(v)},0)}
+function book(){return N(D.quota)-unpaidSum()}
+function nextNo(){return D.v.reduce(function(m,v){return Math.max(m,parseInt(v.no,10)||0)},0)+1}
+function save(){SF.set("docs",KEY,{data:JSON.stringify(D)})}
+
+// ===== 畫面 =====
+function render(){if(!D)return;var h="";
+ var ub=unpaidSum(),bk=book();
+ h+='<div class="card"><h3>零用金現況</h3><div class="kv"><span>定額</span><b>$'+M(D.quota)+'</b><span>未撥補支出（'+unpaid().length+' 張憑證）</span><b>−$'+M(ub)+'</b><span>帳面應有現金</span><b class="big">$'+M(bk)+'</b></div>'+lastCount()+'</div>';
+ h+='<div class="tabs">'+[["v","🧾 憑證"],["c","🪙 點鈔對帳"],["r","🔄 撥補"],["s","📊 月統計"],["set","⚙️ 設定"]].map(function(t){return'<button class="b'+(tab===t[0]?' on':'')+'" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</div>';
+ if(tab==="v")h+=vUI();else if(tab==="c")h+=cUI();else if(tab==="r")h+=rUI();else if(tab==="s")h+=sUI();else h+=setUI();
+ $("app").innerHTML=h;if(tab==="v"&&ed)itR();if(tab==="c")cCalc()}
+function lastCount(){var c=D.counts[D.counts.length-1];if(!c)return'<p class="note" style="margin:8px 0 0">還沒有點鈔紀錄，到「🪙 點鈔對帳」點一次現金，看看是否持平。</p>';
+ return'<p style="margin:8px 0 0;font-size:14px">上次點鈔（'+E(c.date)+(c.by?'，'+E(c.by):'')+'）：現金 $'+M(c.cash)+'，'+diffTxt(c.cash-c.book)+'</p>'}
+function diffTxt(d){return d===0?'<span class="ok">✅ 持平</span>':d<0?'<span class="bad">短少 $'+M(-d)+'</span>':'<span class="bad">多出 $'+M(d)+'</span>'}
+
+// 憑證
+function vUI(){var h="";
+ if(ed)return formUI();
+ h+='<div class="bar"><button class="b y" data-act="new">＋ 新增憑證</button><input type="month" id="mon" value="'+mon+'"><select id="fs"><option value="">全部用途類別</option>'+D.cats.map(function(c){return'<option'+(c[0]===fs?' selected':'')+'>'+E(c[0])+'</option>'}).join("")+'</select></div>';
+ var L=D.v.filter(function(v){return(!mon||String(v.date).slice(0,7)===mon)&&(!fs||v.cat===fs)}).sort(function(a,b){return(parseInt(b.no,10)||0)-(parseInt(a.no,10)||0)});
+ h+='<p class="note">共 '+L.length+' 張，合計 $'+M(L.reduce(function(s,v){return s+tot(v)},0))+'</p>';
+ h+=L.map(function(v){return'<div class="it"><div class="t"><b>#'+E(v.no)+' '+E(v.cat||"（未選用途）")+'</b><span class="amt">$'+M(tot(v))+'</span></div><small><span class="st '+(v.rep?'r">已撥補':'u">未撥補')+'</span>'+E(v.date)+(v.subj?' ・ '+E(v.subj):'')+(v.payee?' ・ 領款人 '+E(v.payee):'')+(v.nph?' ・ 📎'+v.nph:'')+'</small><div style="font-size:14px">'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</div><div class="bar" style="margin:6px 0 0"><button class="b" data-ed="'+v.id+'">編輯</button><button class="b" data-pr="'+v.id+'">🖨️ 列印支出表</button></div></div>'}).join("")||'<p class="note" style="text-align:center">這個條件下沒有憑證。</p>';
+ h+='<div class="bar" style="margin-top:6px"><button class="b" data-act="prm">🖨️ 列印本月全部支出表</button><button class="b" data-act="cover">🖨️ 列印封面</button><button class="b" data-act="xl">📥 匯出 Excel</button></div>';
+ return h}
+function formUI(){var v=ed;return'<div class="fm"><b>'+(D.v.some(function(x){return x.id===v.id})?"編輯":"新增")+'憑證 #'+E(v.no)+'</b>'+(v.rep?'<p class="note">這張已經撥補過，修改金額會影響撥補紀錄。</p>':'')+
+ '<div class="row2"><div><label>日期</label><input type="date" id="f_date" value="'+E(v.date)+'"></div><div><label>編號</label><input id="f_no" value="'+E(v.no)+'"></div></div>'+
+ '<div class="row2"><div><label>用途類別</label><select id="f_cat">'+(v.cat&&!subjOf(v.cat)?[[v.cat,""]]:[]).concat(D.cats).map(function(c){return'<option'+(c[0]===v.cat?' selected':'')+'>'+E(c[0])+'</option>'}).join("")+'</select></div><div><label>科目（自動帶出，可改）</label><select id="f_subj">'+(v.subj&&D.subj.indexOf(v.subj)<0?[v.subj]:[]).concat(D.subj).map(function(s){return'<option'+(s===v.subj?' selected':'')+'>'+E(s)+'</option>'}).join("")+'</select></div></div>'+
+ '<label>明細（金額自動計算）</label><div id="itw"></div><button class="b" type="button" data-act="iadd">＋ 新增一項</button>'+
+ '<p style="margin:8px 0 0">金額總計：<span class="amt" id="f_tot">$'+M(tot(v))+'</span></p>'+
+ '<div class="row2"><div><label>領款人</label><input id="f_payee" value="'+E(v.payee)+'"></div><div><label>備註（選填）</label><input id="f_note" value="'+E(v.note)+'"></div></div>'+
+ '<label>單據照片（選填，最多 2 張）</label><input type="file" id="f_ph" accept="image/*" multiple><div class="ph" id="f_pv"></div>'+
+ '<div class="bar" style="margin-top:10px"><button class="b g" data-act="vok">儲存</button><button class="b" data-act="vno">取消</button>'+(D.v.some(function(x){return x.id===v.id})?'<button class="b" data-act="vdel" style="margin-left:auto">刪除</button>':'')+'</div></div>'}
+function itR(){var w=$("itw");if(!w)return;w.innerHTML=ed.items.map(function(i,k){return'<div class="ir"><input class="w" data-i="'+k+'" data-k="n" placeholder="項目" value="'+E(i.n)+'"><input data-i="'+k+'" data-k="p" type="number" inputmode="decimal" placeholder="單價" value="'+E(i.p)+'"><input data-i="'+k+'" data-k="q" type="number" inputmode="decimal" placeholder="數量" value="'+E(i.q)+'"><input data-i="'+k+'" data-k="note" placeholder="備註" value="'+E(i.note)+'"><div class="bt"><span>金額 <b data-sum="'+k+'">$'+M(N(i.p)*N(i.q))+'</b></span>'+(ed.items.length>1?'<button class="b" type="button" data-idel="'+k+'">✕ 移除</button>':'')+'</div></div>'}).join("");pv()}
+function pv(){var p=$("f_pv");if(p)p.innerHTML=(ed.ph||[]).map(function(u,k){return'<span><img src="'+u+'"><br><a href="#" data-phx="'+k+'" style="font-size:12px;color:#c33">移除</a></span>'}).join("")}
+function readForm(){["date","no","subj","cat","payee","note"].forEach(function(k){var el=$("f_"+k);if(el)ed[k]=el.value.trim()})}
+async function openEdit(id){var v=D.v.filter(function(x){return x.id===id})[0];if(!v)return;ed=JSON.parse(JSON.stringify(v));ed.ph=null;tab="v";render();
+ try{var d=await getPh(id);ed.ph=d}catch(e){ed.ph=[]}pv()}
+function getPh(id){return new Promise(function(res){var u=SF.watchDoc("docs",PHK+id,function(d){u&&u();res((d&&d.ph)||[])},function(){res([])})})}
+
+// 點鈔
+function cUI(){var bk=book();return'<div class="card"><h3>點鈔對帳</h3><p class="note" style="margin:0 0 8px">把零用金盒裡的現金依面額數一數，填張數或枚數。</p><div class="den">'+DEN.map(function(d){return'<span>'+(d>=100?d+' 元鈔':d+' 元硬幣')+'</span><input type="number" inputmode="numeric" min="0" data-den="'+d+'" value="'+E(cnt[d]||"")+'" placeholder="0"><span data-dsum="'+d+'"></span>'}).join("")+'</div>'+
+ '<div class="kv" style="margin-top:10px;border-top:1px dashed var(--line);padding-top:8px"><span>實際現金</span><b id="c_cash"></b><span>帳面應有現金（定額 $'+M(D.quota)+' − 未撥補 $'+M(unpaidSum())+'）</span><b>$'+M(bk)+'</b><span>結果</span><b id="c_res"></b></div>'+
+ '<div class="row2" style="margin-top:8px"><input id="c_by" placeholder="點鈔人"><input id="c_note" placeholder="備註（選填）"></div><div class="bar" style="margin-top:8px"><button class="b g" data-act="csave">記錄這次點鈔</button><button class="b" data-act="cclr">清空</button></div></div>'+
+ '<div class="card"><h3>點鈔紀錄</h3>'+(D.counts.length?'<table class="s"><tr><th>日期</th><th>點鈔人</th><th class="n">現金</th><th class="n">帳面</th><th>結果</th><th></th></tr>'+D.counts.slice().reverse().map(function(c){return'<tr><td>'+E(c.date)+'</td><td>'+E(c.by)+'</td><td class="n">'+M(c.cash)+'</td><td class="n">'+M(c.book)+'</td><td>'+diffTxt(c.cash-c.book)+(c.note?'<br><small>'+E(c.note)+'</small>':'')+'</td><td><button class="b" data-cdel="'+c.id+'">✕</button></td></tr>'}).join("")+'</table>':'<p class="note">還沒有紀錄。</p>')+'</div>'}
+function cCash(){return DEN.reduce(function(s,d){return s+d*N(cnt[d])},0)}
+function cCalc(){DEN.forEach(function(d){var el=document.querySelector('[data-dsum="'+d+'"]');if(el)el.textContent=cnt[d]?"$"+M(d*N(cnt[d])):""});var c=cCash();if($("c_cash"))$("c_cash").textContent="$"+M(c);if($("c_res"))$("c_res").innerHTML=diffTxt(c-book())}
+
+// 撥補
+function rUI(){var U=unpaid().sort(function(a,b){return(parseInt(a.no,10)||0)-(parseInt(b.no,10)||0)}),s=unpaidSum();
+ return'<div class="card"><h3>這期要撥補</h3>'+(U.length?'<table class="s"><tr><th>編號</th><th>日期</th><th>科目</th><th class="n">金額</th></tr>'+U.map(function(v){return'<tr><td>#'+E(v.no)+'</td><td>'+E(v.date)+'</td><td>'+E(v.subj)+'</td><td class="n">'+M(tot(v))+'</td></tr>'}).join("")+'<tr><th colspan="3">合計</th><th class="n">'+M(s)+'</th></tr></table><p class="note">撥補 $'+M(s)+' 後，零用金會回到定額 $'+M(D.quota)+'。</p><div class="row2"><input type="date" id="r_date" value="'+today()+'"><button class="b y" data-act="rep">完成撥補</button></div>':'<p class="note">目前沒有未撥補的憑證。</p>')+'</div>'+
+ '<div class="card"><h3>撥補紀錄</h3>'+(D.reps.length?D.reps.slice().reverse().map(function(r){return'<div class="it"><div class="t"><b>'+E(r.date)+' 撥補</b><span class="amt">$'+M(r.amt)+'</span></div><small>'+r.ids.length+' 張憑證</small><div class="bar" style="margin:6px 0 0"><button class="b" data-rpr="'+r.id+'">🖨️ 列印撥補明細</button><button class="b" data-rdel="'+r.id+'">取消這次撥補</button></div></div>'}).join(""):'<p class="note">還沒有撥補紀錄。</p>')+'</div>'}
+
+// 月統計
+function sUI(){var m=mon||today().slice(0,7),L=D.v.filter(function(v){return String(v.date).slice(0,7)===m}),t=L.reduce(function(s,v){return s+tot(v)},0);
+ function tb(lab,key){var g={},n={};L.forEach(function(v){var k=v[key]||"（未選）";g[k]=(g[k]||0)+tot(v);n[k]=(n[k]||0)+1});return'<h3 style="margin-top:10px">依'+lab+'</h3><table class="s"><tr><th>'+lab+'</th><th class="n">張數</th><th class="n">金額</th></tr>'+Object.keys(g).sort(function(a,b){return g[b]-g[a]}).map(function(k){return'<tr><td>'+E(k)+'</td><td class="n">'+n[k]+'</td><td class="n">'+M(g[k])+'</td></tr>'}).join("")+'<tr><th>合計</th><th class="n">'+L.length+'</th><th class="n">'+M(t)+'</th></tr></table>'}
+ return'<div class="card"><div class="bar"><input type="month" id="smon" value="'+m+'"></div>'+tb("科目","subj")+tb("用途類別","cat")+'</div>'}
+
+// 設定
+function setUI(){return'<div class="card"><h3>設定</h3><label class="note">零用金定額（元）</label><input id="s_quota" type="number" inputmode="numeric" value="'+E(D.quota)+'" style="width:100%"><label class="note" style="display:block;margin-top:8px">科目（一行一個）</label><textarea id="s_subj" rows="5" style="width:100%">'+E(D.subj.join("\n"))+'</textarea><label class="note" style="display:block;margin-top:8px">用途類別＝科目（一行一個，例如「臺電＝業務費」）</label><textarea id="s_cats" rows="9" style="width:100%">'+E(D.cats.map(function(c){return c[0]+"＝"+c[1]}).join("\n"))+'</textarea><div class="bar" style="margin-top:8px"><button class="b g" data-act="sset">儲存設定</button></div></div>'}
+
+// ===== 列印 =====
+function digits(n){var c=Math.round(N(n)*100),s=String(c),cells=9,a=[];for(var i=0;i<cells;i++){var k=s.length-cells+i;a.push(k>=0?s[k]:"")}return a}
+function vPage(v){var d=roc(v.date),dg=digits(tot(v)),rows=v.items.slice();while(rows.length<17)rows.push({});
+ return'<div class="pg"><h1>臺南市私立初晴之森托嬰中心經費支出表</h1><div class="rd">中華民國 '+d[0]+' 年 '+d[1]+' 月 '+d[2]+' 日</div>'+
+ '<table class="dg"><colgroup><col style="width:13%"><col style="width:17%">'+'<col style="width:4.2%">'.repeat(9)+'<col></colgroup><tr><td rowspan="2">編號</td><td rowspan="2">科目</td><td colspan="9">金額總計</td><td rowspan="2">用途類別</td></tr><tr>'+["百","十","萬","千","百","十","元","角","分"].map(function(x){return"<td>"+x+"</td>"}).join("")+'</tr><tr class="dv"><td>'+E(v.no)+'</td><td>'+E(v.subj)+'</td>'+dg.map(function(x){return"<td>"+x+"</td>"}).join("")+'<td>'+E(v.cat)+'</td></tr></table>'+
+ '<div class="sg"><span>製表：＿＿＿＿＿</span><span>出納：＿＿＿＿＿</span><span>會計：＿＿＿＿＿</span><span>主任：＿＿＿＿＿</span></div><div class="hint">（請浮貼支出單據後請蓋騎縫章）</div>'+
+ '<table class="itm"><colgroup><col style="width:30%"><col style="width:15%"><col style="width:12%"><col style="width:16%"><col></colgroup><tr><th>項目</th><th>單價</th><th>數量</th><th>金額</th><th>備註</th></tr>'+rows.map(function(i){var a=N(i.p)*N(i.q);return'<tr><td>'+E(i.n)+'</td><td class="n">'+(i.p!==undefined&&i.p!==""?M(i.p):"")+'</td><td class="n">'+E(i.q)+'</td><td class="n">'+(i.n||a?M(a):"")+'</td><td>'+E(i.note)+'</td></tr>'}).join("")+'</table>'+
+ '<div class="rc">領款人簽收：'+(v.payee?'<span style="margin-left:6mm">'+E(v.payee)+'</span>':'')+'<br>領款日期：中華民國＿＿＿年＿＿＿月＿＿＿日</div></div>'}
+function cover(ym){var d=ym?roc(ym+"-01"):["","",""];return'<div class="pg cv"><div>臺南市私立初晴之森托嬰中心<br>原始支出憑證黏貼表<br><span style="font-size:13pt;color:#555">（封面）</span></div><div>中華民國　'+(d[0]||"　　")+'　年　'+(d[1]||"　　")+'　月　　　日</div></div>'}
+function repPage(r){var V=D.v.filter(function(v){return r.ids.indexOf(v.id)>-1}).sort(function(a,b){return(parseInt(a.no,10)||0)-(parseInt(b.no,10)||0)}),d=roc(r.date);
+ return'<div class="pg"><h1>零用金撥補明細表</h1><div class="rd">撥補日期：中華民國 '+d[0]+' 年 '+d[1]+' 月 '+d[2]+' 日</div><table class="itm"><colgroup><col style="width:12%"><col style="width:18%"><col style="width:20%"><col><col style="width:16%"></colgroup><tr><th>編號</th><th>日期</th><th>科目</th><th>摘要</th><th>金額</th></tr>'+V.map(function(v){return'<tr><td>'+E(v.no)+'</td><td>'+E(v.date)+'</td><td>'+E(v.subj)+'</td><td>'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</td><td class="n">'+M(tot(v))+'</td></tr>'}).join("")+'<tr><th colspan="4" style="text-align:right">撥補合計</th><th style="text-align:right">'+M(r.amt)+'</th></tr></table><p style="font-size:11pt">零用金定額 $'+M(D.quota)+'，本次撥補 $'+M(r.amt)+'。</p><div class="sg"><span>製表：＿＿＿＿＿</span><span>出納：＿＿＿＿＿</span><span>會計：＿＿＿＿＿</span><span>主任：＿＿＿＿＿</span></div></div>'}
+function doPrint(html){$("pv").innerHTML=html;setTimeout(function(){try{window.print()}catch(e){alert("這個瀏覽器不能列印，請改用 Safari 或 Chrome")}},200)}
+
+// ===== Excel =====
+function crc32(u){var t=crc32.t;if(!t){t=crc32.t=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}}var c=-1;for(var i=0;i<u.length;i++)c=t[(c^u[i])&255]^(c>>>8);return(c^-1)>>>0}
+function zip(files){var P=[],C=[],off=0,en=new TextEncoder();files.forEach(function(f){var nb=en.encode(f.n),cr=crc32(f.d),h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint32(14,cr,true);h.setUint32(18,f.d.length,true);h.setUint32(22,f.d.length,true);h.setUint16(26,nb.length,true);P.push(new Uint8Array(h.buffer),nb,f.d);var c=new DataView(new ArrayBuffer(46));c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint32(16,cr,true);c.setUint32(20,f.d.length,true);c.setUint32(24,f.d.length,true);c.setUint16(28,nb.length,true);c.setUint32(42,off,true);C.push(new Uint8Array(c.buffer),nb);off+=30+nb.length+f.d.length});var cs=0;C.forEach(function(x){cs+=x.length});var e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);return new Blob(P.concat(C,[new Uint8Array(e.buffer)]),{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})}
+async function exportXl(){var L=D.v.filter(function(v){return!mon||String(v.date).slice(0,7)===mon}).sort(function(a,b){return(parseInt(a.no,10)||0)-(parseInt(b.no,10)||0)});
+ var H=["編號","日期","科目","用途類別","項目","單價","數量","金額","備註","領款人","憑證合計","撥補狀態"],R=[H];
+ L.forEach(function(v){v.items.forEach(function(i,k){R.push([String(v.no),v.date||"",v.subj||"",v.cat||"",i.n||"",N(i.p),N(i.q),N(i.p)*N(i.q),i.note||"",k?"":v.payee||"",k?"":tot(v),k?"":(v.rep?"已撥補":"未撥補")])})});
+ var col=function(n){return String.fromCharCode(65+n)},X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',en=new TextEncoder(),F=function(s){return en.encode(s)};
+ var sd=R.map(function(r,ri){return'<row r="'+(ri+1)+'">'+r.map(function(v,ci){var ref=col(ci)+(ri+1);return v===""?"":typeof v==="number"?'<c r="'+ref+'"><v>'+v+'</v></c>':'<c r="'+ref+'" t="inlineStr"><is><t xml:space="preserve">'+E(v)+'</t></is></c>'}).join("")+'</row>'}).join("");
+ var bl=zip([{n:"[Content_Types].xml",d:F(X+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>')},
+  {n:"_rels/.rels",d:F(X+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>')},
+  {n:"xl/workbook.xml",d:F(X+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="零用金" sheetId="1" r:id="rId1"/></sheets></workbook>')},
+  {n:"xl/_rels/workbook.xml.rels",d:F(X+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>')},
+  {n:"xl/worksheets/sheet1.xml",d:F(X+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="12" width="13" customWidth="1"/></cols><sheetData>'+sd+'</sheetData></worksheet>')}]);
+ var name="零用金"+(mon?"-"+mon:"")+".xlsx",a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}
+
+// ===== 照片縮圖 =====
+function shrink(f){return new Promise(function(r){var rd=new FileReader();rd.onload=function(){var m=new Image();m.onload=function(){var s=Math.min(1,900/Math.max(m.width,m.height)),c=document.createElement("canvas");c.width=m.width*s;c.height=m.height*s;c.getContext("2d").drawImage(m,0,0,c.width,c.height);r(c.toDataURL("image/jpeg",.6))};m.src=rd.result};rd.readAsDataURL(f)})}
+
+// ===== 事件 =====
+document.body.addEventListener("input",function(e){var t=e.target;
+ if(t.dataset.i!==undefined&&ed){ed.items[+t.dataset.i][t.dataset.k]=t.value;var k=t.dataset.i,el=document.querySelector('[data-sum="'+k+'"]');if(el)el.textContent="$"+M(N(ed.items[k].p)*N(ed.items[k].q));$("f_tot").textContent="$"+M(tot(ed))}
+ else if(t.dataset.den!==undefined){cnt[t.dataset.den]=t.value;cCalc()}});
+document.body.addEventListener("change",async function(e){var t=e.target;
+ if(t.id==="mon"){mon=t.value;render()}else if(t.id==="smon"){mon=t.value;render()}else if(t.id==="fs"){fs=t.value;render()}
+ else if(t.id==="f_cat"&&ed){var sj=subjOf(t.value);if(sj&&$("f_subj"))$("f_subj").value=sj}
+ else if(t.id==="f_ph"&&ed){ed.ph=ed.ph||[];for(var f of t.files){if(ed.ph.length<2)ed.ph.push(await shrink(f))}t.value="";pv()}});
+document.body.addEventListener("click",async function(e){var t=e.target.closest("button,a");if(!t)return;var a=t.dataset.act;
+ if(t.dataset.tab){tab=t.dataset.tab;ed=null;render();return}
+ if(t.dataset.ed){openEdit(t.dataset.ed);return}
+ if(t.dataset.pr){var v=D.v.filter(function(x){return x.id===t.dataset.pr})[0];if(v)doPrint(vPage(v));return}
+ if(t.dataset.idel!==undefined){readForm();ed.items.splice(+t.dataset.idel,1);itR();$("f_tot").textContent="$"+M(tot(ed));return}
+ if(t.dataset.phx!==undefined){e.preventDefault();ed.ph.splice(+t.dataset.phx,1);pv();return}
+ if(t.dataset.cdel){if(!confirm("刪除這筆點鈔紀錄？"))return;D.counts=D.counts.filter(function(c){return c.id!==t.dataset.cdel});save();render();return}
+ if(t.dataset.rpr){var r=D.reps.filter(function(x){return x.id===t.dataset.rpr})[0];if(r)doPrint(repPage(r));return}
+ if(t.dataset.rdel){var r2=D.reps.filter(function(x){return x.id===t.dataset.rdel})[0];if(!r2||!confirm("取消這次撥補？這 "+r2.ids.length+" 張憑證會變回「未撥補」。"))return;D.v.forEach(function(v){if(v.rep===r2.id)v.rep=null});D.reps=D.reps.filter(function(x){return x.id!==r2.id});save();render();return}
+ if(a==="new"){var c0=fs||(D.cats[0]&&D.cats[0][0])||"";ed={id:uid(),no:String(nextNo()),date:today(),subj:subjOf(c0)||D.subj[0]||"",cat:c0,items:[{n:"",p:"",q:"1",note:""}],payee:"",note:"",rep:null,ph:[]};render()}
+ else if(a==="iadd"){readForm();ed.items.push({n:"",p:"",q:"1",note:""});itR()}
+ else if(a==="vno"){ed=null;render()}
+ else if(a==="vok"){readForm();ed.items=ed.items.filter(function(i){return i.n||N(i.p)});if(!ed.items.length){alert("請至少填一項明細");ed.items=[{n:"",p:"",q:"1",note:""}];itR();return}
+  if(!ed.date){alert("請填日期");return}var ph=ed.ph,v=JSON.parse(JSON.stringify(ed));delete v.ph;if(ph!==null)v.nph=(ph||[]).length;
+  var i=D.v.map(function(x){return x.id}).indexOf(v.id);if(i>-1)D.v[i]=v;else D.v.push(v);save();if(ph!==null)SF.set("docs",PHK+v.id,{ph:ph||[]});ed=null;render()}
+ else if(a==="vdel"){if(!confirm("確定刪除憑證 #"+ed.no+"？"))return;D.v=D.v.filter(function(x){return x.id!==ed.id});D.reps.forEach(function(r){r.ids=r.ids.filter(function(id){return id!==ed.id})});save();SF.remove("docs",PHK+ed.id);ed=null;render()}
+ else if(a==="prm"){var m=mon||today().slice(0,7),L=D.v.filter(function(v){return String(v.date).slice(0,7)===m}).sort(function(a,b){return(parseInt(a.no,10)||0)-(parseInt(b.no,10)||0)});if(!L.length){alert(m+" 沒有憑證");return}doPrint(cover(m)+L.map(vPage).join(""))}
+ else if(a==="cover"){doPrint(cover(mon||today().slice(0,7)))}
+ else if(a==="xl"){exportXl()}
+ else if(a==="csave"){var c=cCash();if(!c&&!confirm("現金是 0 元，確定要記錄嗎？"))return;D.counts.push({id:uid(),date:today(),by:$("c_by").value.trim(),note:$("c_note").value.trim(),cash:c,book:book(),den:JSON.parse(JSON.stringify(cnt))});save();render()}
+ else if(a==="cclr"){cnt={};render()}
+ else if(a==="rep"){var U=unpaid(),s=unpaidSum();if(!U.length)return;if(!confirm("撥補 $"+M(s)+"（"+U.length+" 張憑證）？"))return;var r3={id:uid(),date:$("r_date").value||today(),amt:s,ids:U.map(function(v){return v.id})};U.forEach(function(v){v.rep=r3.id});D.reps.push(r3);save();render();if(confirm("要列印這次的撥補明細嗎？"))doPrint(repPage(r3))}
+ else if(a==="sset"){var q=N($("s_quota").value),S=[];$("s_subj").value.split(/\n/).forEach(function(l){l=l.trim();if(l&&S.indexOf(l)<0)S.push(l)});var C=[];$("s_cats").value.split(/\n/).forEach(function(l){var m=l.split(/[＝=]/);var n=(m[0]||"").trim(),sj=(m[1]||"").trim();if(n&&!C.some(function(c){return c[0]===n})){C.push([n,sj]);if(sj&&S.indexOf(sj)<0)S.push(sj)}});if(q<=0){alert("定額要大於 0");return}if(!S.length){alert("至少要有一個科目");return}if(!C.length){alert("至少要有一個用途類別");return}D.quota=q;D.subj=S;D.cats=C;save();alert("已儲存");render()}
+});
+
+SF.gate(function(){
+ SF.watchDoc("docs",KEY,function(d,local){if(local)return;var x=null;try{x=d&&d.data?JSON.parse(d.data):null}catch(e){}D=Object.assign(JSON.parse(JSON.stringify(DEF)),x||{});if(!ed)render()},
+  function(e){if(e&&e.code==="permission-denied")$("app").innerHTML='<div class="card"><h3>沒有權限</h3><p>零用金只限管理者與主管查看。</p></div>'})});
+</script>
+</body></html>

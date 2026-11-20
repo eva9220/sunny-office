@@ -48,6 +48,7 @@ var L=[["QUOTES","廠商報價","裝潢・招牌・廚具・地墊・書包・�
 ["REGISTRATION","立案冊","立案文件檢核・進度・期限","docs.html?m=register","house","#e7a3b1","#fbe4e8"],
 ["STAFF","人員招募・薪資架構","薪資與年度人事費試算・招募進度","docs.html?m=staff","people","#9bc2db","#e0eef6"],
 ["CONTRACT","定型化契約","契約資料整理・附件檢核","docs.html?m=contract","paper","#d3b896","#f3eadc"],
-["EVALUATION","評鑑自我檢核","28 項指標・官方表格・後續追蹤","eval.html","check","#b9a2d6","#ece4f5"]];
+["EVALUATION","評鑑自我檢核","28 項指標・官方表格・後續追蹤","eval.html","check","#b9a2d6","#ece4f5"],
+["PETTY CASH","零用金","憑證登記・點鈔對帳・撥補・經費支出表列印","petty.html","💰","#d9b46a","#f8eed6"]];
 document.getElementById("g").innerHTML=L.map(function(l){var h=l[3];return'<'+(h?'a href="'+h+'"':'div')+' class="card'+(h?'':' soon')+'" style="--k:'+l[5]+';--bg2:'+l[6]+'"><div class="ic">'+(IC[l[4]]||l[4])+'</div><div class="tx"><small>'+l[0]+'</small><b>'+l[1]+'</b><span>'+l[2]+'</span>'+(h?'':'<span class="bd">即將推出</span>')+'</div>'+(h?'<div class="ar">›</div>':'')+'</'+(h?'a':'div')+'>'}).join("")
 </script><script type="module">import { SF } from "./cloud.js"; SF.gate(function(){});</script></body></html>
