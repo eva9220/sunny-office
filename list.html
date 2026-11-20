@@ -43,7 +43,9 @@ if(new URLSearchParams(location.search).get("from")==="eval"){var bk=document.ge
 var $=function(i){return document.getElementById(i)},L=[];
 var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")},ed=-1,cur=[];
 function fillCat(){var v=$("cat").value;$("cat").innerHTML='<option value="">全部'+CFG.cl+'</option>'+CFG.cats.map(function(c){return'<option>'+E(c)+'</option>'}).join("");$("cat").value=v}fillCat();var C0=new URLSearchParams(location.search).get("c");if(C0&&CFG.cats.indexOf(C0)>-1)$("cat").value=C0;
-function rows(){var c=$("cat").value,q=$("q").value.trim();return L.map(function(x,i){x.i=i;return x}).filter(function(x){return(!c||x.c===c)&&(!q||JSON.stringify(x.f).indexOf(q)>-1||x.c.indexOf(q)>-1)})}
+function rows(){var c=$("cat").value,q=$("q").value.trim(),r=L.map(function(x,i){x.i=i;return x}).filter(function(x){return(!c||x.c===c)&&(!q||JSON.stringify(x.f).indexOf(q)>-1||x.c.indexOf(q)>-1)});
+ if(T==="asset"){var ci=function(k){var i=CFG.cats.indexOf(k);return i<0?999:i},num=function(x){var n=parseFloat(x.f.no);return isNaN(n)?1e9:n};r.sort(function(p,q){return ci(p.c)-ci(q.c)||num(p)-num(q)||p.i-q.i})}
+ return r}
 function its(x){var f=x.f;if(T==="asset")return[{name:f.name,spec:f.spec,qty:f.qty,price:f.price}];return f.items&&f.items.length?f.items:[{name:f.name,spec:f.spec,qty:f.qty,price:f.price}]}
 function amt(x){var f=x.f;if(T==="asset")return(+f.qty||0)*(+f.price||0);return its(x).reduce(function(a,i){return a+(+i.qty||0)*(+i.price||0)},0)+(+f.labor||0)+(+f.ship||0)}
 function ln(x){var f=x.f;if(T==="asset")return'<div>數量 '+E(f.qty||0)+' × $'+E(f.price||0)+' = <span class="pr">$'+amt(x).toLocaleString()+'</span></div>';
