@@ -56,7 +56,7 @@ var $=function(i){return document.getElementById(i)},KEY="docs_staff_petty",PHK=
 var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")};
 var N=function(v){v=+v;return isFinite(v)?v:0},M=function(v){return Math.round(N(v)).toLocaleString()};
 var DEN=[1000,500,200,100,50,10,5,1];
-var DEF={quota:20000,subj:["薪資支出","勞健退","伙食","水費","電費","郵電費","職工福利","教材費","活動費","雜支","暫收付","租金","稅捐","退費","設備-購置","設備-修繕","交際費"],cats:[["臺電","電費"],["水費","水費"],["文具","雜支"],["清潔","雜支"],["教具採買","教材費"],["老師時薪費用","薪資支出"],["交際費","交際費"]],v:[],reps:[],counts:[]};
+var DEF={mode:"ledger",quota:20000,subj:["薪資支出","勞健退","伙食","水費","電費","郵電費","職工福利","教材費","活動費","雜支","暫收付","租金","稅捐","退費","設備-購置","設備-修繕","交際費"],cats:[["臺電","電費"],["水費","水費"],["文具","雜支"],["清潔","雜支"],["教具採買","教材費"],["老師時薪費用","薪資支出"],["交際費","交際費"]],v:[],reps:[],counts:[]};
 var OLD_SUBJ='["人事費","業務費","設備費","雜支"]',LKEY="docs_staff_ledger",LD=null;
 function subjOf(c){var m=D.cats.filter(function(x){return x[0]===c})[0];return m?m[1]:""}
 var D=null,tab="v",ed=null,cur=null,mon="",fs="",cnt={};
@@ -66,16 +66,22 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 function tot(v){return v.items.reduce(function(s,i){return s+N(i.p)*N(i.q)},0)}
 function unpaid(){return D.v.filter(function(v){return!v.rep})}
 function unpaidSum(){return unpaid().reduce(function(s,v){return s+tot(v)},0)}
-function book(){return N(D.quota)-unpaidSum()}
+function LM(){return D.mode!=="quota"}
+function linRows(){return LD&&LD.rows?LD.rows.filter(function(r){return r.subj==="零用金"&&N(r.exp)}).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0}):[]}
+function linSum(){return linRows().reduce(function(s,r){return s+N(r.exp)},0)}
+function allSum(){return D.v.reduce(function(s,v){return s+tot(v)},0)}
+function book(){return LM()?linSum()-allSum():N(D.quota)-unpaidSum()}
+function bookTxt(){return LM()?"本帳撥入 $"+M(linSum())+" − 憑證支出 $"+M(allSum()):"定額 $"+M(D.quota)+" − 未撥補 $"+M(unpaidSum())}
 function nextNo(){return D.v.reduce(function(m,v){return Math.max(m,parseInt(v.no,10)||0)},0)+1}
 function save(){SF.set("docs",KEY,{data:JSON.stringify(D)})}
 
 // ===== 畫面 =====
 function render(){if(!D)return;var h="";
  var ub=unpaidSum(),bk=book();
- h+='<div class="card"><h3>零用金現況</h3><div class="kv"><span>定額</span><b>$'+M(D.quota)+'</b><span>未撥補支出（'+unpaid().length+' 張憑證）</span><b>−$'+M(ub)+'</b><span>帳面應有現金</span><b class="big">$'+M(bk)+'</b></div>'+lastCount()+'</div>';
- h+='<div class="tabs">'+[["v","🧾 憑證"],["c","🪙 點鈔對帳"],["r","🔄 撥補"],["s","📊 月統計"],["set","⚙️ 設定"]].map(function(t){return'<button class="b'+(tab===t[0]?' on':'')+'" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</div>';
- if(tab==="v")h+=vUI();else if(tab==="c")h+=cUI();else if(tab==="r")h+=rUI();else if(tab==="s")h+=sUI();else h+=setUI();
+ if(LM())h+='<div class="card"><h3>零用金現況</h3>'+(LD?'':'<p class="bad" style="margin:0 0 6px">本帳還沒有資料，請先到「📒 本帳」匯入。</p>')+'<div class="kv"><span>總收入（本帳「零用金」'+linRows().length+' 筆）</span><b class="ok">$'+M(linSum())+'</b><span>總支出（'+D.v.length+' 張憑證）</span><b>−$'+M(allSum())+'</b><span>帳面應有現金</span><b class="big">$'+M(bk)+'</b></div>'+lastCount()+'</div>';
+ else h+='<div class="card"><h3>零用金現況</h3><div class="kv"><span>定額</span><b>$'+M(D.quota)+'</b><span>未撥補支出（'+unpaid().length+' 張憑證）</span><b>−$'+M(ub)+'</b><span>帳面應有現金</span><b class="big">$'+M(bk)+'</b></div>'+lastCount()+'</div>';
+ h+='<div class="tabs">'+(LM()?[["v","🧾 憑證"],["in","💵 撥入紀錄"],["c","🪙 點鈔對帳"],["s","📊 月統計"],["set","⚙️ 設定"]]:[["v","🧾 憑證"],["c","🪙 點鈔對帳"],["r","🔄 撥補"],["s","📊 月統計"],["set","⚙️ 設定"]]).map(function(t){return'<button class="b'+(tab===t[0]?' on':'')+'" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</div>';
+ if(tab==="v")h+=vUI();else if(tab==="in")h+=inUI();else if(tab==="c")h+=cUI();else if(tab==="r")h+=rUI();else if(tab==="s")h+=sUI();else h+=setUI();
  $("app").innerHTML=h;if(tab==="v"&&ed)itR();if(tab==="c")cCalc()}
 function lastCount(){var c=D.counts[D.counts.length-1];if(!c)return'<p class="note" style="margin:8px 0 0">還沒有點鈔紀錄，到「🪙 點鈔對帳」點一次現金，看看是否持平。</p>';
  return'<p style="margin:8px 0 0;font-size:14px">上次點鈔（'+E(c.date)+(c.by?'，'+E(c.by):'')+'）：現金 $'+M(c.cash)+'，'+diffTxt(c.cash-c.book)+'</p>'}
@@ -87,7 +93,7 @@ function vUI(){var h="";
  h+='<div class="bar"><button class="b y" data-act="new">＋ 新增憑證</button><input type="month" id="mon" value="'+mon+'"><select id="fs"><option value="">全部用途類別</option>'+D.cats.map(function(c){return'<option'+(c[0]===fs?' selected':'')+'>'+E(c[0])+'</option>'}).join("")+'</select></div>';
  var L=D.v.filter(function(v){return(!mon||String(v.date).slice(0,7)===mon)&&(!fs||v.cat===fs)}).sort(function(a,b){return(parseInt(b.no,10)||0)-(parseInt(a.no,10)||0)});
  h+='<p class="note">共 '+L.length+' 張，合計 $'+M(L.reduce(function(s,v){return s+tot(v)},0))+'</p>';
- h+=L.map(function(v){return'<div class="it"><div class="t"><b>#'+E(v.no)+' '+E(v.cat||"（未選用途）")+'</b><span class="amt">$'+M(tot(v))+'</span></div><small><span class="st '+(v.rep?'r">已撥補':'u">未撥補')+'</span>'+E(v.date)+(v.subj?' ・ '+E(v.subj):'')+(v.payee?' ・ 領款人 '+E(v.payee):'')+(v.nph?' ・ 📎'+v.nph:'')+'</small><div style="font-size:14px">'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</div><div class="bar" style="margin:6px 0 0"><button class="b" data-ed="'+v.id+'">編輯</button><button class="b" data-pr="'+v.id+'">🖨️ 列印支出表</button></div></div>'}).join("")||'<p class="note" style="text-align:center">這個條件下沒有憑證。</p>';
+ h+=L.map(function(v){return'<div class="it"><div class="t"><b>#'+E(v.no)+' '+E(v.cat||"（未選用途）")+'</b><span class="amt">$'+M(tot(v))+'</span></div><small>'+(LM()?'':'<span class="st '+(v.rep?'r">已撥補':'u">未撥補')+'</span>')+E(v.date)+(v.subj?' ・ '+E(v.subj):'')+(v.payee?' ・ 領款人 '+E(v.payee):'')+(v.nph?' ・ 📎'+v.nph:'')+'</small><div style="font-size:14px">'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</div><div class="bar" style="margin:6px 0 0"><button class="b" data-ed="'+v.id+'">編輯</button><button class="b" data-pr="'+v.id+'">🖨️ 列印支出表</button></div></div>'}).join("")||'<p class="note" style="text-align:center">這個條件下沒有憑證。</p>';
  h+='<div class="bar" style="margin-top:6px"><button class="b" data-act="prm">🖨️ 列印本月全部支出表</button><button class="b" data-act="cover">🖨️ 列印封面</button><button class="b" data-act="xl">📥 匯出 Excel</button></div>';
  return h}
 function formUI(){var v=ed;return'<div class="fm"><b>'+(D.v.some(function(x){return x.id===v.id})?"編輯":"新增")+'憑證 #'+E(v.no)+'</b>'+(v.rep?'<p class="note">這張已經撥補過，修改金額會影響撥補紀錄。</p>':'')+
@@ -107,7 +113,7 @@ function getPh(id){return new Promise(function(res){var u=SF.watchDoc("docs",PHK
 
 // 點鈔
 function cUI(){var bk=book();return'<div class="card"><h3>點鈔對帳</h3><p class="note" style="margin:0 0 8px">把零用金盒裡的現金依面額數一數，填張數或枚數。</p><div class="den">'+DEN.map(function(d){return'<span>'+(d>=100?d+' 元鈔':d+' 元硬幣')+'</span><input type="number" inputmode="numeric" min="0" data-den="'+d+'" value="'+E(cnt[d]||"")+'" placeholder="0"><span data-dsum="'+d+'"></span>'}).join("")+'</div>'+
- '<div class="kv" style="margin-top:10px;border-top:1px dashed var(--line);padding-top:8px"><span>實際現金</span><b id="c_cash"></b><span>帳面應有現金（定額 $'+M(D.quota)+' − 未撥補 $'+M(unpaidSum())+'）</span><b>$'+M(bk)+'</b><span>結果</span><b id="c_res"></b></div>'+
+ '<div class="kv" style="margin-top:10px;border-top:1px dashed var(--line);padding-top:8px"><span>實際現金</span><b id="c_cash"></b><span>帳面應有現金（'+bookTxt()+'）</span><b>$'+M(bk)+'</b><span>結果</span><b id="c_res"></b></div>'+
  '<div class="row2" style="margin-top:8px"><input id="c_by" placeholder="點鈔人"><input id="c_note" placeholder="備註（選填）"></div><div class="bar" style="margin-top:8px"><button class="b g" data-act="csave">記錄這次點鈔</button><button class="b" data-act="cclr">清空</button></div></div>'+
  '<div class="card"><h3>點鈔紀錄</h3>'+(D.counts.length?'<table class="s"><tr><th>日期</th><th>點鈔人</th><th class="n">現金</th><th class="n">帳面</th><th>結果</th><th></th></tr>'+D.counts.slice().reverse().map(function(c){return'<tr><td>'+E(c.date)+'</td><td>'+E(c.by)+'</td><td class="n">'+M(c.cash)+'</td><td class="n">'+M(c.book)+'</td><td>'+diffTxt(c.cash-c.book)+(c.note?'<br><small>'+E(c.note)+'</small>':'')+'</td><td><button class="b" data-cdel="'+c.id+'">✕</button></td></tr>'}).join("")+'</table>':'<p class="note">還沒有紀錄。</p>')+'</div>'}
 function cCash(){return DEN.reduce(function(s,d){return s+d*N(cnt[d])},0)}
@@ -124,7 +130,8 @@ function sUI(){var m=mon||today().slice(0,7),L=D.v.filter(function(v){return Str
  return'<div class="card"><div class="bar"><input type="month" id="smon" value="'+m+'"></div>'+tb("科目","subj")+tb("用途類別","cat")+'</div>'}
 
 // 設定
-function setUI(){return'<div class="card"><h3>設定</h3><label class="note">零用金定額（元）</label><input id="s_quota" type="number" inputmode="numeric" value="'+E(D.quota)+'" style="width:100%"><label class="note" style="display:block;margin-top:8px">科目（一行一個）</label><textarea id="s_subj" rows="5" style="width:100%">'+E(D.subj.join("\n"))+'</textarea><label class="note" style="display:block;margin-top:8px">用途類別＝科目（一行一個，例如「臺電＝業務費」）</label><textarea id="s_cats" rows="9" style="width:100%">'+E(D.cats.map(function(c){return c[0]+"＝"+c[1]}).join("\n"))+'</textarea><div class="bar" style="margin-top:8px"><button class="b g" data-act="sset">儲存設定</button></div></div>'}
+function inUI(){var R=linRows();return'<div class="card"><h3>從本帳撥入零用金</h3><p class="note" style="margin:0 0 6px">本帳裡科目是「零用金」的支出，就是撥進零用金的錢。要新增請到「📒 本帳」記一筆，科目選「零用金」。</p>'+(R.length?'<table class="s"><tr><th>日期</th><th>項目／備註</th><th class="n">金額</th></tr>'+R.map(function(r){return'<tr><td>'+E(r.date)+'</td><td>'+E(r.item)+(r.note?'<br><small class="note">'+E(r.note)+'</small>':'')+'</td><td class="n">'+M(r.exp)+'</td></tr>'}).join("")+'<tr><th colspan="2">合計 '+R.length+' 筆</th><th class="n">'+M(linSum())+'</th></tr></table>':'<p class="note">本帳裡還沒有「零用金」的支出。</p>')+'<p style="margin:10px 0 0"><a class="b" href="ledger.html" style="text-decoration:none">前往本帳 ›</a></p></div>'}
+function setUI(){return'<div class="card"><h3>設定</h3><label class="note">零用金收入怎麼算</label><select id="s_mode" style="width:100%"><option value="ledger"'+(LM()?' selected':'')+'>依本帳：本帳「零用金」支出的加總＝零用金總收入</option><option value="quota"'+(LM()?'':' selected')+'>定額制：固定額度，花多少補多少</option></select><label class="note" style="display:block;margin-top:8px">零用金定額（元，定額制才會用到）</label><input id="s_quota" type="number" inputmode="numeric" value="'+E(D.quota)+'" style="width:100%"><label class="note" style="display:block;margin-top:8px">科目（一行一個）</label><textarea id="s_subj" rows="5" style="width:100%">'+E(D.subj.join("\n"))+'</textarea><label class="note" style="display:block;margin-top:8px">用途類別＝科目（一行一個，例如「臺電＝業務費」）</label><textarea id="s_cats" rows="9" style="width:100%">'+E(D.cats.map(function(c){return c[0]+"＝"+c[1]}).join("\n"))+'</textarea><div class="bar" style="margin-top:8px"><button class="b g" data-act="sset">儲存設定</button></div></div>'}
 
 // ===== 列印 =====
 function digits(n){var c=Math.round(N(n)*100),s=String(c),cells=9,a=[];for(var i=0;i<cells;i++){var k=s.length-cells+i;a.push(k>=0?s[k]:"")}return a}
@@ -189,11 +196,11 @@ document.body.addEventListener("click",async function(e){var t=e.target.closest(
  else if(a==="rep"){var U=unpaid(),s=unpaidSum();if(!U.length)return;if(!confirm("撥補 $"+M(s)+"（"+U.length+" 張憑證）？"))return;var r3={id:uid(),date:$("r_date").value||today(),amt:s,ids:U.map(function(v){return v.id})};U.forEach(function(v){v.rep=r3.id});D.reps.push(r3);save();render();
   if(confirm("要同時在「本帳」記一筆支出「零用金撥補 $"+M(s)+"」嗎？\n（如果撥補的錢已經在本帳記過，請按取消）")){var L2=LD||{rows:[]};L2.rows=L2.rows||[];L2.rows.push({id:uid(),date:r3.date,item:"零用金撥補",subj:"零用金",inc:"",exp:s,note:"撥補 "+U.length+" 張憑證（#"+U.map(function(v){return v.no}).join("、#")+"）"});LD=L2;SF.set("docs",LKEY,{data:JSON.stringify(L2)})}
   if(confirm("要列印這次的撥補明細嗎？"))doPrint(repPage(r3))}
- else if(a==="sset"){var q=N($("s_quota").value),S=[];$("s_subj").value.split(/\n/).forEach(function(l){l=l.trim();if(l&&S.indexOf(l)<0)S.push(l)});var C=[];$("s_cats").value.split(/\n/).forEach(function(l){var m=l.split(/[＝=]/);var n=(m[0]||"").trim(),sj=(m[1]||"").trim();if(n&&!C.some(function(c){return c[0]===n})){C.push([n,sj]);if(sj&&S.indexOf(sj)<0)S.push(sj)}});if(q<=0){alert("定額要大於 0");return}if(!S.length){alert("至少要有一個科目");return}if(!C.length){alert("至少要有一個用途類別");return}D.quota=q;D.subj=S;D.cats=C;save();alert("已儲存");render()}
+ else if(a==="sset"){D.mode=$("s_mode").value;var q=N($("s_quota").value),S=[];$("s_subj").value.split(/\n/).forEach(function(l){l=l.trim();if(l&&S.indexOf(l)<0)S.push(l)});var C=[];$("s_cats").value.split(/\n/).forEach(function(l){var m=l.split(/[＝=]/);var n=(m[0]||"").trim(),sj=(m[1]||"").trim();if(n&&!C.some(function(c){return c[0]===n})){C.push([n,sj]);if(sj&&S.indexOf(sj)<0)S.push(sj)}});if(q<=0){alert("定額要大於 0");return}if(!S.length){alert("至少要有一個科目");return}if(!C.length){alert("至少要有一個用途類別");return}D.quota=q;D.subj=S;D.cats=C;save();alert("已儲存");render()}
 });
 
 SF.gate(function(){
- SF.watchDoc("docs",LKEY,function(d){try{LD=d&&d.data?JSON.parse(d.data):null}catch(e){LD=null}},function(){});
+ SF.watchDoc("docs",LKEY,function(d){try{LD=d&&d.data?JSON.parse(d.data):null}catch(e){LD=null}if(D&&!ed)render()},function(){});
  SF.watchDoc("docs",KEY,function(d,local){if(local)return;var x=null;try{x=d&&d.data?JSON.parse(d.data):null}catch(e){}D=Object.assign(JSON.parse(JSON.stringify(DEF)),x||{});if(JSON.stringify(D.subj)===OLD_SUBJ){var map={"業務費":null,"人事費":"薪資支出","雜支":null};D.subj=DEF.subj.slice();D.cats=DEF.cats.slice();D.v.forEach(function(v){var s=subjOf(v.cat);if(s)v.subj=s;else if(map[v.subj])v.subj=map[v.subj]});save()}if(!ed)render()},
   function(e){if(e&&e.code==="permission-denied")$("app").innerHTML='<div class="card"><h3>沒有權限</h3><p>零用金只限管理者與主管查看。</p></div>'})});
 </script>
