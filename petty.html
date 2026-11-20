@@ -208,12 +208,14 @@ SF.gate(function(){
 // 匯入憑證 Excel：欄位 日期、用途類別、科目、項目、金額、領款人、備註（依標題名稱對應）
 function isoD(v){if(typeof v==="number"&&v>20000)return new Date(Date.UTC(1899,11,30)+Math.floor(v)*864e5).toISOString().slice(0,10);var m=String(v||"").trim().match(/^(\d{2,4})[\/.\-年](\d{1,2})[\/.\-月](\d{1,2})/);if(!m)return"";var y=+m[1];if(y<1000)y+=1911;return y+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[3]).padStart(2,"0")}
 async function importV(f){var sh=await readSheet(f,/憑證|零用金/),R=sh.rows,hr=-1,col={};
- for(var r=1;r<R.length&&hr<0;r++){var row=R[r]||[];if(row.indexOf("日期")>-1&&row.indexOf("金額")>-1)hr=r}
- if(hr<0){alert("找不到「日期、金額」標題列");return}
+ for(var r=1;r<R.length&&hr<0;r++){var row=R[r]||[];if(row.indexOf("日期")>-1&&(row.indexOf("金額")>-1||row.indexOf("支出")>-1))hr=r}
+ if(hr<0){alert("找不到「日期、金額（或支出）」標題列");return}
  R[hr].forEach(function(v,c){if(v)col[String(v).trim()]=c});
+ // 零用金收支表格式（序、日期、項目、科目、收入、支出、備註）：只取「支出」欄，收入由本帳「零用金」計算
+ var ledgerFmt=col["金額"]==null&&col["支出"]!=null;if(ledgerFmt){col["金額"]=col["支出"];if(col["用途類別"]==null)col["用途類別"]=col["項目"]}
  var out=[];for(var i=hr+1;i<R.length;i++){var x=R[i]||[],d=isoD(x[col["日期"]]),amt=N(x[col["金額"]]);if(!d||!amt)continue;
   var cat=String(x[col["用途類別"]]||"").trim(),it=String(x[col["項目"]]||cat).trim();
-  out.push({id:uid(),no:"",date:d,cat:cat,subj:String(x[col["科目"]]||"").trim()||subjOf(cat)||"",items:[{n:it,p:String(amt),q:"1",note:""}],payee:String(x[col["領款人"]]||"").trim(),note:String(x[col["備註"]]||"").trim(),rep:null})}
+  out.push({id:uid(),no:"",date:d,cat:cat,subj:String(x[col["科目"]]||"").trim()||subjOf(cat)||"",items:[{n:it,p:String(amt),q:"1",note:""}],payee:String(x[col["領款人"]]||"").trim()||((String(x[col["備註"]]||"").match(/領款人\s*([^；;]+)/)||[])[1]||"").trim(),note:String(x[col["備註"]]||"").trim(),rep:null})}
  if(!out.length){alert("沒有讀到資料");return}
  var sig=function(v){return v.date+"|"+tot(v)+"|"+v.items.map(function(i){return i.n}).join("、")},have={};D.v.forEach(function(v){have[sig(v)]=1});
  var nw=out.filter(function(v){return!have[sig(v)]}),sum=nw.reduce(function(s,v){return s+tot(v)},0);
