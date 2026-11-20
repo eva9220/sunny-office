@@ -52,6 +52,7 @@ table.s{width:100%;border-collapse:collapse;font-size:14px}table.s td,table.s th
 <div id="pv"></div>
 <script type="module">
 import { SF } from "./cloud.js";
+import { readSheet } from "./xlsximport.js";
 var $=function(i){return document.getElementById(i)},KEY="docs_staff_petty",PHK="docs_staff_pettyph_";
 var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")};
 var N=function(v){v=+v;return isFinite(v)?v:0},M=function(v){return Math.round(N(v)).toLocaleString()};
@@ -94,7 +95,7 @@ function vUI(){var h="";
  var L=D.v.filter(function(v){return(!mon||String(v.date).slice(0,7)===mon)&&(!fs||v.cat===fs)}).sort(function(a,b){return(parseInt(b.no,10)||0)-(parseInt(a.no,10)||0)});
  h+='<p class="note">共 '+L.length+' 張，合計 $'+M(L.reduce(function(s,v){return s+tot(v)},0))+'</p>';
  h+=L.map(function(v){return'<div class="it"><div class="t"><b>#'+E(v.no)+' '+E(v.cat||"（未選用途）")+'</b><span class="amt">$'+M(tot(v))+'</span></div><small>'+(LM()?'':'<span class="st '+(v.rep?'r">已撥補':'u">未撥補')+'</span>')+E(v.date)+(v.subj?' ・ '+E(v.subj):'')+(v.payee?' ・ 領款人 '+E(v.payee):'')+(v.nph?' ・ 📎'+v.nph:'')+'</small><div style="font-size:14px">'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</div><div class="bar" style="margin:6px 0 0"><button class="b" data-ed="'+v.id+'">編輯</button><button class="b" data-pr="'+v.id+'">🖨️ 列印支出表</button></div></div>'}).join("")||'<p class="note" style="text-align:center">這個條件下沒有憑證。</p>';
- h+='<div class="bar" style="margin-top:6px"><button class="b" data-act="prm">🖨️ 列印本月全部支出表</button><button class="b" data-act="cover">🖨️ 列印封面</button><button class="b" data-act="xl">📥 匯出 Excel</button></div>';
+ h+='<div class="bar" style="margin-top:6px"><button class="b" data-act="prm">🖨️ 列印本月全部支出表</button><button class="b" data-act="cover">🖨️ 列印封面</button><button class="b" data-act="xl">📥 匯出 Excel</button><button class="b" data-act="vimp">📤 匯入憑證 Excel</button></div>';
  return h}
 function formUI(){var v=ed;return'<div class="fm"><b>'+(D.v.some(function(x){return x.id===v.id})?"編輯":"新增")+'憑證 #'+E(v.no)+'</b>'+(v.rep?'<p class="note">這張已經撥補過，修改金額會影響撥補紀錄。</p>':'')+
  '<div class="row2"><div><label>日期</label><input type="date" id="f_date" value="'+E(v.date)+'"></div><div><label>編號</label><input id="f_no" value="'+E(v.no)+'"></div></div>'+
@@ -191,6 +192,7 @@ document.body.addEventListener("click",async function(e){var t=e.target.closest(
  else if(a==="prm"){var m=mon||today().slice(0,7),L=D.v.filter(function(v){return String(v.date).slice(0,7)===m}).sort(function(a,b){return(parseInt(a.no,10)||0)-(parseInt(b.no,10)||0)});if(!L.length){alert(m+" 沒有憑證");return}doPrint(cover(m)+L.map(vPage).join(""))}
  else if(a==="cover"){doPrint(cover(mon||today().slice(0,7)))}
  else if(a==="xl"){exportXl()}
+ else if(a==="vimp"){$("vimf").click()}
  else if(a==="csave"){var c=cCash();if(!c&&!confirm("現金是 0 元，確定要記錄嗎？"))return;D.counts.push({id:uid(),date:today(),by:$("c_by").value.trim(),note:$("c_note").value.trim(),cash:c,book:book(),den:JSON.parse(JSON.stringify(cnt))});save();render()}
  else if(a==="cclr"){cnt={};render()}
  else if(a==="rep"){var U=unpaid(),s=unpaidSum();if(!U.length)return;if(!confirm("撥補 $"+M(s)+"（"+U.length+" 張憑證）？"))return;var r3={id:uid(),date:$("r_date").value||today(),amt:s,ids:U.map(function(v){return v.id})};U.forEach(function(v){v.rep=r3.id});D.reps.push(r3);save();render();
@@ -203,5 +205,23 @@ SF.gate(function(){
  SF.watchDoc("docs",LKEY,function(d){try{LD=d&&d.data?JSON.parse(d.data):null}catch(e){LD=null}if(D&&!ed)render()},function(){});
  SF.watchDoc("docs",KEY,function(d,local){if(local)return;var x=null;try{x=d&&d.data?JSON.parse(d.data):null}catch(e){}D=Object.assign(JSON.parse(JSON.stringify(DEF)),x||{});if(JSON.stringify(D.subj)===OLD_SUBJ){var map={"業務費":null,"人事費":"薪資支出","雜支":null};D.subj=DEF.subj.slice();D.cats=DEF.cats.slice();D.v.forEach(function(v){var s=subjOf(v.cat);if(s)v.subj=s;else if(map[v.subj])v.subj=map[v.subj]});save()}if(!ed)render()},
   function(e){if(e&&e.code==="permission-denied")$("app").innerHTML='<div class="card"><h3>沒有權限</h3><p>零用金只限管理者與主管查看。</p></div>'})});
+// 匯入憑證 Excel：欄位 日期、用途類別、科目、項目、金額、領款人、備註（依標題名稱對應）
+function isoD(v){if(typeof v==="number"&&v>20000)return new Date(Date.UTC(1899,11,30)+Math.floor(v)*864e5).toISOString().slice(0,10);var m=String(v||"").trim().match(/^(\d{2,4})[\/.\-年](\d{1,2})[\/.\-月](\d{1,2})/);if(!m)return"";var y=+m[1];if(y<1000)y+=1911;return y+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[3]).padStart(2,"0")}
+async function importV(f){var sh=await readSheet(f,/憑證|零用金/),R=sh.rows,hr=-1,col={};
+ for(var r=1;r<R.length&&hr<0;r++){var row=R[r]||[];if(row.indexOf("日期")>-1&&row.indexOf("金額")>-1)hr=r}
+ if(hr<0){alert("找不到「日期、金額」標題列");return}
+ R[hr].forEach(function(v,c){if(v)col[String(v).trim()]=c});
+ var out=[];for(var i=hr+1;i<R.length;i++){var x=R[i]||[],d=isoD(x[col["日期"]]),amt=N(x[col["金額"]]);if(!d||!amt)continue;
+  var cat=String(x[col["用途類別"]]||"").trim(),it=String(x[col["項目"]]||cat).trim();
+  out.push({id:uid(),no:"",date:d,cat:cat,subj:String(x[col["科目"]]||"").trim()||subjOf(cat)||"",items:[{n:it,p:String(amt),q:"1",note:""}],payee:String(x[col["領款人"]]||"").trim(),note:String(x[col["備註"]]||"").trim(),rep:null})}
+ if(!out.length){alert("沒有讀到資料");return}
+ var sig=function(v){return v.date+"|"+tot(v)+"|"+v.items.map(function(i){return i.n}).join("、")},have={};D.v.forEach(function(v){have[sig(v)]=1});
+ var nw=out.filter(function(v){return!have[sig(v)]}),sum=nw.reduce(function(s,v){return s+tot(v)},0);
+ if(!nw.length){alert("檔案裡的 "+out.length+" 張都已經登記過了");return}
+ if(!confirm("要匯入 "+nw.length+" 張憑證嗎？合計 $"+M(sum)+(out.length>nw.length?"\n（另有 "+(out.length-nw.length)+" 張已存在，略過）":"")))return;
+ nw.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});var n=nextNo();nw.forEach(function(v){v.no=String(n++);v.nph=0;if(v.subj&&D.subj.indexOf(v.subj)<0)D.subj.push(v.subj);if(v.cat&&!D.cats.some(function(c){return c[0]===v.cat}))D.cats.push([v.cat,v.subj])});
+ D.v=D.v.concat(nw);save();render();alert("已匯入 "+nw.length+" 張")}
+document.body.insertAdjacentHTML("beforeend",'<input type="file" id="vimf" accept=".xlsx" hidden>');
+$("vimf").addEventListener("change",async function(){var f=this.files[0];this.value="";if(!f)return;try{await importV(f)}catch(x){console.error(x);alert("無法讀取這個檔案："+(x.message||x))}});
 </script>
 </body></html>
