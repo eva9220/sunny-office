@@ -56,7 +56,8 @@ var $=function(i){return document.getElementById(i)},KEY="docs_staff_petty",PHK=
 var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")};
 var N=function(v){v=+v;return isFinite(v)?v:0},M=function(v){return Math.round(N(v)).toLocaleString()};
 var DEN=[1000,500,200,100,50,10,5,1];
-var DEF={quota:20000,subj:["人事費","業務費","設備費","雜支"],cats:[["臺電","業務費"],["水費","業務費"],["文具","業務費"],["清潔","業務費"],["教具採買","業務費"],["老師時薪費用","人事費"],["交際費","雜支"]],v:[],reps:[],counts:[]};
+var DEF={quota:20000,subj:["薪資支出","勞健退","伙食","水費","電費","郵電費","職工福利","教材費","活動費","雜支","暫收付","租金","稅捐","退費","設備-購置","設備-修繕","交際費"],cats:[["臺電","電費"],["水費","水費"],["文具","雜支"],["清潔","雜支"],["教具採買","教材費"],["老師時薪費用","薪資支出"],["交際費","交際費"]],v:[],reps:[],counts:[]};
+var OLD_SUBJ='["人事費","業務費","設備費","雜支"]',LKEY="docs_staff_ledger",LD=null;
 function subjOf(c){var m=D.cats.filter(function(x){return x[0]===c})[0];return m?m[1]:""}
 var D=null,tab="v",ed=null,cur=null,mon="",fs="",cnt={};
 function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
@@ -185,12 +186,15 @@ document.body.addEventListener("click",async function(e){var t=e.target.closest(
  else if(a==="xl"){exportXl()}
  else if(a==="csave"){var c=cCash();if(!c&&!confirm("現金是 0 元，確定要記錄嗎？"))return;D.counts.push({id:uid(),date:today(),by:$("c_by").value.trim(),note:$("c_note").value.trim(),cash:c,book:book(),den:JSON.parse(JSON.stringify(cnt))});save();render()}
  else if(a==="cclr"){cnt={};render()}
- else if(a==="rep"){var U=unpaid(),s=unpaidSum();if(!U.length)return;if(!confirm("撥補 $"+M(s)+"（"+U.length+" 張憑證）？"))return;var r3={id:uid(),date:$("r_date").value||today(),amt:s,ids:U.map(function(v){return v.id})};U.forEach(function(v){v.rep=r3.id});D.reps.push(r3);save();render();if(confirm("要列印這次的撥補明細嗎？"))doPrint(repPage(r3))}
+ else if(a==="rep"){var U=unpaid(),s=unpaidSum();if(!U.length)return;if(!confirm("撥補 $"+M(s)+"（"+U.length+" 張憑證）？"))return;var r3={id:uid(),date:$("r_date").value||today(),amt:s,ids:U.map(function(v){return v.id})};U.forEach(function(v){v.rep=r3.id});D.reps.push(r3);save();render();
+  if(confirm("要同時在「本帳」記一筆支出「零用金撥補 $"+M(s)+"」嗎？\n（如果撥補的錢已經在本帳記過，請按取消）")){var L2=LD||{rows:[]};L2.rows=L2.rows||[];L2.rows.push({id:uid(),date:r3.date,item:"零用金撥補",subj:"零用金",inc:"",exp:s,note:"撥補 "+U.length+" 張憑證（#"+U.map(function(v){return v.no}).join("、#")+"）"});LD=L2;SF.set("docs",LKEY,{data:JSON.stringify(L2)})}
+  if(confirm("要列印這次的撥補明細嗎？"))doPrint(repPage(r3))}
  else if(a==="sset"){var q=N($("s_quota").value),S=[];$("s_subj").value.split(/\n/).forEach(function(l){l=l.trim();if(l&&S.indexOf(l)<0)S.push(l)});var C=[];$("s_cats").value.split(/\n/).forEach(function(l){var m=l.split(/[＝=]/);var n=(m[0]||"").trim(),sj=(m[1]||"").trim();if(n&&!C.some(function(c){return c[0]===n})){C.push([n,sj]);if(sj&&S.indexOf(sj)<0)S.push(sj)}});if(q<=0){alert("定額要大於 0");return}if(!S.length){alert("至少要有一個科目");return}if(!C.length){alert("至少要有一個用途類別");return}D.quota=q;D.subj=S;D.cats=C;save();alert("已儲存");render()}
 });
 
 SF.gate(function(){
- SF.watchDoc("docs",KEY,function(d,local){if(local)return;var x=null;try{x=d&&d.data?JSON.parse(d.data):null}catch(e){}D=Object.assign(JSON.parse(JSON.stringify(DEF)),x||{});if(!ed)render()},
+ SF.watchDoc("docs",LKEY,function(d){try{LD=d&&d.data?JSON.parse(d.data):null}catch(e){LD=null}},function(){});
+ SF.watchDoc("docs",KEY,function(d,local){if(local)return;var x=null;try{x=d&&d.data?JSON.parse(d.data):null}catch(e){}D=Object.assign(JSON.parse(JSON.stringify(DEF)),x||{});if(JSON.stringify(D.subj)===OLD_SUBJ){var map={"業務費":null,"人事費":"薪資支出","雜支":null};D.subj=DEF.subj.slice();D.cats=DEF.cats.slice();D.v.forEach(function(v){var s=subjOf(v.cat);if(s)v.subj=s;else if(map[v.subj])v.subj=map[v.subj]});save()}if(!ed)render()},
   function(e){if(e&&e.code==="permission-denied")$("app").innerHTML='<div class="card"><h3>沒有權限</h3><p>零用金只限管理者與主管查看。</p></div>'})});
 </script>
 </body></html>

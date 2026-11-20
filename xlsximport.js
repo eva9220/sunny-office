@@ -154,3 +154,28 @@ export async function readXlsx(file) {
   }
   return out;
 }
+
+// 讀取指定工作表（名稱符合 nameRe，找不到就用第一個）的儲存格值，回傳二維陣列 rows[列][欄]（1-based 列號存在 index）
+export async function readSheet(file, nameRe) {
+  const z = await unzip(await file.arrayBuffer());
+  const xml = async (n) => { const t = await z.text(n); return t ? new DOMParser().parseFromString(t, "application/xml") : null; };
+  const wb = await xml("xl/workbook.xml");
+  const relDoc = await xml("xl/_rels/workbook.xml.rels"), rels = {};
+  tags(relDoc, "Relationship").forEach((r) => { rels[r.getAttribute("Id")] = resolve("xl/workbook.xml", r.getAttribute("Target")); });
+  const sheets = tags(wb, "sheet");
+  const sh = sheets.find((s) => nameRe && nameRe.test(s.getAttribute("name"))) || sheets[0];
+  const sheet = await xml(rels[sh.getAttributeNS(RID, "id")] || "xl/worksheets/sheet1.xml");
+  const ss = tags(await xml("xl/sharedStrings.xml"), "si").map((si) => tags(si, "t").map((t) => t.textContent).join(""));
+  const out = [];
+  tags(sheet, "c").forEach((cell) => {
+    const ref = cell.getAttribute("r"), r = +ref.match(/\d+/)[0], c = colNum(ref), t = cell.getAttribute("t");
+    let v = tags(cell, "v")[0];
+    v = v ? v.textContent : null;
+    if (t === "s") v = ss[+v];
+    else if (t === "inlineStr") v = tags(cell, "t").map((x) => x.textContent).join("");
+    else if (t === "e") v = null;
+    else if (v != null && t !== "str" && v !== "" && !isNaN(v)) v = +v;
+    if (v != null && v !== "") (out[r] = out[r] || [])[c] = v;
+  });
+  return { name: sh.getAttribute("name"), rows: out };
+}
