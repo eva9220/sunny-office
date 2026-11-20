@@ -34,22 +34,33 @@ input[type=date],input[type=month]{-webkit-appearance:none;appearance:none;min-h
 table.s{width:100%;border-collapse:collapse;font-size:14px}table.s td,table.s th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left}table.s td.n,table.s th.n{text-align:right;font-variant-numeric:tabular-nums}
 .note{font-size:13px;color:var(--sub)}
 #pv{display:none}
+#pvw{display:none;position:fixed;inset:0;z-index:50;background:#e9e4dc;overflow:auto;padding:0 0 30px}
+#pvw.show{display:block}
+#pvw .tb{position:sticky;top:0;z-index:2;background:#4d4a47;color:#fff;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:calc(8px + env(safe-area-inset-top,0px)) 12px 8px}
+#pvw .tb button{border:0;border-radius:999px;padding:8px 16px;font:inherit;font-size:15px;cursor:pointer;background:#fff;color:#4d4a47}#pvw .tb button.g{background:#86ab98;color:#fff}
+#pvw .tb small{opacity:.85;font-size:12px;flex-basis:100%}
+#pvw .pages{display:flex;flex-direction:column;align-items:center;gap:14px;padding:14px 0}
+#pvw .pg{background:#fff;width:210mm;min-height:297mm;padding:14mm 16mm;box-shadow:0 2px 8px rgba(0,0,0,.2);transform-origin:top center}
+@media (max-width:820px){#pvw .pg{zoom:.45}}
 /* 列印：經費支出表、封面、撥補明細 */
 .pg{font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;color:#000;page-break-after:always;padding:0}.pg:last-child{page-break-after:auto}
 .pg h1{font-size:17pt;text-align:center;margin:0;text-decoration:underline;font-weight:500}
 .pg .rd{text-align:right;font-size:11pt;margin:2px 0 4px}
 .pg table{width:100%;border-collapse:collapse;table-layout:fixed}.pg td,.pg th{border:1px solid #000;font-size:11pt;padding:3px;text-align:center;font-weight:400;word-break:break-all}
 .pg .dg td{font-size:9.5pt;padding:1px}.pg .dv td{height:10mm;font-size:12pt}
-.pg .sg{margin:7mm 0 4mm;font-size:11pt;display:flex;justify-content:space-between}
+.pg .sg{margin:7mm 0 4mm;font-size:11pt;display:flex;justify-content:space-between}.pg .sg i{font-style:normal;color:#bbb;letter-spacing:.3em;margin-left:2mm}
+.pg .rd u{display:inline-block;min-width:9mm;text-align:center;text-decoration:none;border-bottom:1px solid #000;margin:0 1mm}
+.pg .dg td.bl{border-left:2px solid #000}.pg .dg td.ln{position:relative}.pg .dg td.ln:after{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px solid #333}
+.pg .rc u{display:inline-block;min-width:12mm;border-bottom:1px solid #000;text-decoration:none}
 .pg .hint{text-align:center;font-size:10.5pt;margin:2mm 0 3mm}
 .pg .itm th{background:#ddd;text-align:left}.pg .itm td{height:7.4mm;text-align:left}.pg .itm td.n{text-align:right}
 .pg .rc{margin-top:8mm;font-size:11.5pt;line-height:2.2}
 .pg.cv{display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:255mm;padding:80mm 0 50mm;font-size:16pt;text-align:center;line-height:2.1}
-@media print{@page{size:A4 portrait;margin:14mm 16mm}body{background:#fff}header,main{display:none!important}#pv{display:block}}
+@media print{@page{size:A4 portrait;margin:14mm 16mm}body{background:#fff}header,main,#pvw .tb{display:none!important}#pvw{position:static;display:block!important;background:#fff;overflow:visible;padding:0}#pvw .pages{display:block;padding:0}#pvw .pg{width:auto;min-height:0;padding:0;box-shadow:none;zoom:1!important}}
 </style></head><body>
 <header><a href="index.html">← Sunny Office</a><b>💰 零用金</b></header>
 <main id="app"><p class="note">載入中…</p></main>
-<div id="pv"></div>
+<div id="pv"></div><div id="pvw"></div>
 <script type="module">
 import { SF } from "./cloud.js";
 import { readSheet } from "./xlsximport.js";
@@ -136,16 +147,29 @@ function setUI(){return'<div class="card"><h3>設定</h3><label class="note">零
 
 // ===== 列印 =====
 function digits(n){var c=Math.round(N(n)*100),s=String(c),cells=9,a=[];for(var i=0;i<cells;i++){var k=s.length-cells+i;a.push(k>=0?s[k]:"")}return a}
-function vPage(v){var d=roc(v.date),dg=digits(tot(v)),rows=v.items.slice();while(rows.length<17)rows.push({});
- return'<div class="pg"><h1>臺南市私立初晴之森托嬰中心經費支出表</h1><div class="rd">中華民國 '+d[0]+' 年 '+d[1]+' 月 '+d[2]+' 日</div>'+
- '<table class="dg"><colgroup><col style="width:13%"><col style="width:17%">'+'<col style="width:4.2%">'.repeat(9)+'<col></colgroup><tr><td rowspan="2">編號</td><td rowspan="2">科目</td><td colspan="9">金額總計</td><td rowspan="2">用途類別</td></tr><tr>'+["百","十","萬","千","百","十","元","角","分"].map(function(x){return"<td>"+x+"</td>"}).join("")+'</tr><tr class="dv"><td>'+E(v.no)+'</td><td>'+E(v.subj)+'</td>'+dg.map(function(x){return"<td>"+x+"</td>"}).join("")+'<td>'+E(v.cat)+'</td></tr></table>'+
- '<div class="sg"><span>製表：＿＿＿＿＿</span><span>出納：＿＿＿＿＿</span><span>會計：＿＿＿＿＿</span><span>主任：＿＿＿＿＿</span></div><div class="hint">（請浮貼支出單據後請蓋騎縫章）</div>'+
- '<table class="itm"><colgroup><col style="width:30%"><col style="width:15%"><col style="width:12%"><col style="width:16%"><col></colgroup><tr><th>項目</th><th>單價</th><th>數量</th><th>金額</th><th>備註</th></tr>'+rows.map(function(i){var a=N(i.p)*N(i.q);return'<tr><td>'+E(i.n)+'</td><td class="n">'+(i.p!==undefined&&i.p!==""?M(i.p):"")+'</td><td class="n">'+E(i.q)+'</td><td class="n">'+(i.n||a?M(a):"")+'</td><td>'+E(i.note)+'</td></tr>'}).join("")+'</table>'+
- '<div class="rc">領款人簽收：'+(v.payee?'<span style="margin-left:6mm">'+E(v.payee)+'</span>':'')+'<br>領款日期：中華民國＿＿＿年＿＿＿月＿＿＿日</div></div>'}
+function vPage(v){var d=roc(v.date),c=Math.round(tot(v)*100),s=String(c),cells=[];for(var k=0;k<9;k++){var q=s.length-9+k;cells.push(q>=0?s[q]:"")}
+ var first=cells.findIndex(function(x){return x!==""});var rows=v.items.slice();while(rows.length<17)rows.push({});
+ var dgTd=cells.map(function(x,k){var cls=(k===0||k===3||k===7)?"bl":"";if(k<first)cls+=" ln";if(k>=7&&x==="0")x="—";return'<td class="'+cls+'">'+x+'</td>'}).join("");
+ return'<div class="pg"><h1>臺南市私立初晴之森托嬰中心經費支出表</h1><div class="rd">中華民國<u>'+d[0]+'</u>年<u>'+d[1]+'</u>月<u>'+d[2]+'</u>日</div>'+
+ '<table class="dg"><colgroup><col style="width:13%"><col style="width:17%">'+'<col style="width:4.4%">'.repeat(9)+'<col></colgroup><tr><td rowspan="2">編號</td><td rowspan="2">科目</td><td colspan="9">金額總計</td><td rowspan="2">用途類別</td></tr><tr>'+["百","十","萬","千","百","十","元","角","分"].map(function(x,k){return'<td'+((k===0||k===3||k===7)?' class="bl"':'')+'>'+x+"</td>"}).join("")+'</tr><tr class="dv"><td></td><td>'+E(v.subj)+'</td>'+dgTd+'<td>'+E(v.cat||v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</td></tr></table>'+
+ '<div class="sg"><span>製表:<i>請核章</i></span><span>--出納:<i>請核章</i></span><span>---會計:<i>請核章</i></span><span>--- 主任:<i>請核章</i></span></div><div class="hint">(請浮貼支出單據後請蓋騎縫章)</div>'+
+ '<table class="itm"><colgroup><col style="width:30%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col></colgroup><tr><th>項目</th><th>單價</th><th>數量</th><th>金額</th><th>備註</th></tr>'+rows.map(function(){return'<tr><td></td><td></td><td></td><td></td><td></td></tr>'}).join("")+'</table>'+
+ '<div class="rc">領款人簽收：<br>領款日期：中華民國<u></u>年<u></u>月<u></u>日</div></div>'}
 function cover(ym){var d=ym?roc(ym+"-01"):["","",""];return'<div class="pg cv"><div>臺南市私立初晴之森托嬰中心<br>原始支出憑證黏貼表<br><span style="font-size:13pt;color:#555">（封面）</span></div><div>中華民國　'+(d[0]||"　　")+'　年　'+(d[1]||"　　")+'　月　　　日</div></div>'}
 function repPage(r){var V=D.v.filter(function(v){return r.ids.indexOf(v.id)>-1}).sort(function(a,b){return(parseInt(a.no,10)||0)-(parseInt(b.no,10)||0)}),d=roc(r.date);
  return'<div class="pg"><h1>零用金撥補明細表</h1><div class="rd">撥補日期：中華民國 '+d[0]+' 年 '+d[1]+' 月 '+d[2]+' 日</div><table class="itm"><colgroup><col style="width:12%"><col style="width:18%"><col style="width:20%"><col><col style="width:16%"></colgroup><tr><th>編號</th><th>日期</th><th>科目</th><th>摘要</th><th>金額</th></tr>'+V.map(function(v){return'<tr><td>'+E(v.no)+'</td><td>'+E(v.date)+'</td><td>'+E(v.subj)+'</td><td>'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</td><td class="n">'+M(tot(v))+'</td></tr>'}).join("")+'<tr><th colspan="4" style="text-align:right">撥補合計</th><th style="text-align:right">'+M(r.amt)+'</th></tr></table><p style="font-size:11pt">零用金定額 $'+M(D.quota)+'，本次撥補 $'+M(r.amt)+'。</p><div class="sg"><span>製表：＿＿＿＿＿</span><span>出納：＿＿＿＿＿</span><span>會計：＿＿＿＿＿</span><span>主任：＿＿＿＿＿</span></div></div>'}
-function doPrint(html){$("pv").innerHTML=html;setTimeout(function(){try{window.print()}catch(e){alert("這個瀏覽器不能列印，請改用 Safari 或 Chrome")}},200)}
+function doPrint(html){var w=$("pvw");w.innerHTML='<div class="tb"><button class="g" data-pvp="1">🖨️ 列印</button><button data-pvf="1">📄 存成 PDF</button><button data-pvx="1">✕ 關閉</button><small>按「列印」沒有反應時（例如從 LINE 開啟），請按「存成 PDF」再列印</small></div><div class="pages">'+html+'</div>';w.classList.add("show");w.scrollTop=0}
+function ld(u){return new Promise(function(r,j){var s=document.createElement("script");s.src=u;s.onload=r;s.onerror=j;document.head.appendChild(s)})}
+async function savePdf(btn){btn.disabled=true;var t=btn.textContent;try{
+ if(!window.html2canvas)await ld("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+ if(!window.jspdf)await ld("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+ var pages=$("pvw").querySelectorAll(".pg"),P=new jspdf.jsPDF("p","mm","a4");
+ for(var i=0;i<pages.length;i++){btn.textContent="製作中 "+(i+1)+"/"+pages.length;var pg=pages[i],z=pg.style.zoom;pg.style.zoom="1";
+  var cv=await html2canvas(pg,{scale:2,backgroundColor:"#fff"});pg.style.zoom=z;if(i)P.addPage();P.addImage(cv.toDataURL("image/jpeg",.9),"JPEG",0,0,210,297)}
+ var bl=P.output("blob"),name="經費支出表-"+today()+".pdf",f=new File([bl],name,{type:"application/pdf"}),done=false;
+ if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});done=true}catch(x){if(x&&x.name==="AbortError")done=true}}
+ if(!done){var a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}
+}catch(e){console.error(e);alert("無法製作 PDF（需要連上網路）")}btn.disabled=false;btn.textContent=t}
 
 // ===== Excel =====
 function crc32(u){var t=crc32.t;if(!t){t=crc32.t=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}}var c=-1;for(var i=0;i<u.length;i++)c=t[(c^u[i])&255]^(c>>>8);return(c^-1)>>>0}
@@ -174,6 +198,9 @@ document.body.addEventListener("change",async function(e){var t=e.target;
  else if(t.id==="f_cat"&&ed){var sj=subjOf(t.value);if(sj&&$("f_subj"))$("f_subj").value=sj}
  else if(t.id==="f_ph"&&ed){ed.ph=ed.ph||[];for(var f of t.files){if(ed.ph.length<2)ed.ph.push(await shrink(f))}t.value="";pv()}});
 document.body.addEventListener("click",async function(e){var t=e.target.closest("button,a");if(!t)return;var a=t.dataset.act;
+ if(t.dataset.pvp){try{window.print()}catch(x){alert("這個瀏覽器不能列印，請按「存成 PDF」")}return}
+ if(t.dataset.pvf){savePdf(t);return}
+ if(t.dataset.pvx){$("pvw").classList.remove("show");return}
  if(t.dataset.tab){tab=t.dataset.tab;ed=null;render();return}
  if(t.dataset.ed){openEdit(t.dataset.ed);return}
  if(t.dataset.pr){var v=D.v.filter(function(x){return x.id===t.dataset.pr})[0];if(v)doPrint(vPage(v));return}
