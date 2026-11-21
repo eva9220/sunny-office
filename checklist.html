@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>會計清單｜Sunny Office</title>
+<style>
+:root{--bg:#fbf6ef;--ink:#4d4a47;--sub:#8c857d;--g:#86ab98;--p:#dc8f80;--line:#eadfd2;color-scheme:light}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding-bottom:env(safe-area-inset-bottom,0px)}
+header{background:#8aa36b;color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 12px;display:flex;align-items:center;gap:10px}
+header a{color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:10px;padding:4px 12px;text-decoration:none;font-size:14px}header b{font-size:18px}
+main{max-width:720px;margin:0 auto;padding:14px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+input,select,textarea{font:inherit;font-size:15px;border:1.5px solid var(--line);border-radius:12px;padding:7px 10px;background:#fffdf9;color:var(--ink);min-width:0}
+input[type=month]{-webkit-appearance:none;appearance:none;min-height:42px}
+.b{border:1px solid var(--line);background:#fffdf9;border-radius:999px;padding:7px 14px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}
+.b.on{background:var(--p);border-color:var(--p);color:#fff}.b.g{background:var(--g);border-color:var(--g);color:#fff}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.card{background:#fffdf9;border-radius:20px;padding:12px 14px;margin-bottom:12px;box-shadow:0 4px 0 var(--line)}
+.card h3{margin:0 0 4px;font-size:17px}
+.note{font-size:13px;color:var(--sub)}
+.prog{height:10px;background:#eee6da;border-radius:99px;overflow:hidden;margin:6px 0}.prog i{display:block;height:100%;background:var(--g)}
+.it{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px dashed var(--line)}.it:last-child{border-bottom:0}
+.it input[type=checkbox]{width:24px;height:24px;flex:0 0 24px;margin-top:2px;accent-color:var(--g)}
+.it .tx{flex:1;min-width:0}.it .tx b{font-weight:600;display:block}.it .tx small{color:var(--sub);display:block;white-space:pre-wrap}
+.it.done .tx b{text-decoration:line-through;color:var(--sub)}
+.it .ok{color:#3f8a5c;font-size:12px}
+.it .x{border:0;background:none;color:#c4513e;font-size:13px;cursor:pointer;padding:2px 4px}
+.grp{font-size:13px;color:var(--sub);margin:10px 0 0;font-weight:700}
+.fm{display:grid;gap:6px;margin-top:8px}.fm input,.fm textarea{width:100%}
+</style></head><body>
+<header><a href="index.html">← Sunny Office</a><b>✅ 會計清單</b></header>
+<main id="app"><p class="note">載入中…</p></main>
+<script type="module">
+import { SF } from "./cloud.js";
+import { readSheet } from "./xlsximport.js";
+var $=function(i){return document.getElementById(i)},KEY="docs_staff_checklist";
+var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")};
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function roc(d){var m=String(d||"").match(/^(\d{4})-(\d\d)-(\d\d)/);return m?(m[1]-1911)+"/"+m[2]+"/"+m[3]:d||""}
+var T=function(t,n,g){return{id:uid(),t:t,n:n||"",g:g||""}};
+var DEF={todo:[],
+ monthly:[
+ T("零用金點鈔對帳（每週一次）","在「💰 零用金」→「🪙 點鈔對帳」記錄。現金盒＋中心帳戶裡的零用金一起算。"),
+ T("所有支出都有經費支出表和單據","付錢當天就開；網購附訂單或刷卡紀錄。"),
+ T("代墊款登記並歸還","別人代墊的當天就在「🤝 代墊款」登記，月底前還清。"),
+ T("補登存摺／看網銀，本帳對平","在「📒 本帳」輸入網銀結餘，要顯示「✅ 對平」。"),
+ T("公司帳戶裡沒有個人的錢","「暫收付」要歸零，個人的錢當月轉回。"),
+ T("檢查應付尾款","「📑 應付尾款」有沒有到期要付的。"),
+ T("看預算對照","「📊 預算對照」有沒有紅字超支。"),
+ T("新買的設備列入財產清冊",""),
+ T("列印本月經費支出表＋封面，主任覆核蓋章","「💰 零用金」→「🧾 憑證」→「列印本月全部支出表」。"),
+ T("匯出 Excel 備份","本帳、零用金各匯出一份存起來。")],
+ done:{},mdone:{}};
+var D=null,tab="todo",mon=today().slice(0,7),add=false;
+function save(){SF.set("docs",KEY,{data:JSON.stringify(D)})}
+function items(){return tab==="todo"?D.todo:D.monthly}
+function isDone(it){return tab==="todo"?D.done[it.id]:(D.mdone[mon]||{})[it.id]}
+function render(){if(!D)return;var L=items(),n=L.filter(isDone).length,h='';
+ h+='<div class="tabs"><button class="b'+(tab==="todo"?' on':'')+'" data-tab="todo">📝 待辦事項</button><button class="b'+(tab==="monthly"?' on':'')+'" data-tab="monthly">🗓️ 每月例行</button></div>';
+ h+='<div class="card">'+(tab==="monthly"?'<div class="bar"><span>月份</span><input type="month" id="mon" value="'+mon+'"></div>':'<h3>待辦事項</h3>')+
+  '<div class="note">完成 '+n+' / '+L.length+'</div><div class="prog"><i style="width:'+(L.length?n/L.length*100:0)+'%"></i></div></div>';
+ var g="",body="";
+ (tab==="todo"?L.slice().sort(function(a,b){return(!!isDone(a))-(!!isDone(b))}):L).forEach(function(it){var d=isDone(it);
+  if(tab==="todo"&&it.g!==g&&!d){g=it.g;body+='<div class="grp">'+E(g||"其他")+'</div>'}
+  body+='<div class="it'+(d?' done':'')+'"><input type="checkbox" data-ck="'+it.id+'"'+(d?' checked':'')+'><div class="tx"><b>'+E(it.t)+'</b>'+(it.n?'<small>'+E(it.n)+'</small>':'')+(d?'<span class="ok">✓ '+E(roc(d.at))+(d.by?' '+E(d.by):'')+'</span>':'')+'</div><button class="x" data-del="'+it.id+'">刪除</button></div>'});
+ h+='<div class="card">'+(body||'<p class="note">沒有項目。</p>')+
+  (tab==='todo'?'<div class="bar" style="margin-top:8px"><button class="b" data-act="imp">📤 匯入待辦 Excel</button><span class="note">欄位：分類、項目、說明</span></div>':'')+(add?'<div class="fm"><input id="n_t" placeholder="要做的事"><textarea id="n_n" rows="2" placeholder="說明（選填）"></textarea>'+(tab==="todo"?'<input id="n_g" placeholder="分類（例如 零用金、本帳）">':'')+'<div class="bar"><button class="b g" data-act="ok">新增</button><button class="b" data-act="no">取消</button></div></div>':'<div class="bar" style="margin-top:8px"><button class="b" data-act="add">＋ 新增項目</button></div>')+'</div>';
+ $("app").innerHTML=h}
+document.body.addEventListener("change",function(e){var t=e.target;
+ if(t.id==="mon"){mon=t.value||mon;render();return}
+ if(t.dataset.ck){var id=t.dataset.ck,mark=t.checked?{at:today(),by:(window.__who||"")}:null;
+  if(tab==="todo"){if(mark)D.done[id]=mark;else delete D.done[id]}else{D.mdone[mon]=D.mdone[mon]||{};if(mark)D.mdone[mon][id]=mark;else delete D.mdone[mon][id]}
+  save();render()}});
+document.body.addEventListener("click",function(e){var t=e.target.closest("button");if(!t)return;
+ if(t.dataset.tab){tab=t.dataset.tab;add=false;render();return}
+ if(t.dataset.del){var L=items(),it=L.filter(function(x){return x.id===t.dataset.del})[0];if(!it||!confirm("刪除「"+it.t+"」？"))return;L.splice(L.indexOf(it),1);save();render();return}
+ var a=t.dataset.act;
+ if(a==="imp"){$("imf").click();return}
+ if(a==="add"){add=true;render();$("n_t").focus()}
+ else if(a==="no"){add=false;render()}
+ else if(a==="ok"){var tt=$("n_t").value.trim();if(!tt)return;items().push(T(tt,$("n_n").value.trim(),$("n_g")?$("n_g").value.trim():""));add=false;save();render()}});
+document.body.insertAdjacentHTML("beforeend",'<input type="file" id="imf" accept=".xlsx" hidden>');
+$("imf").addEventListener("change",async function(){var f=this.files[0];this.value="";if(!f)return;try{
+ var sh=await readSheet(f,/待辦|清單/),R=sh.rows,hr=-1,col={};for(var r=1;r<R.length&&hr<0;r++){if((R[r]||[]).indexOf("項目")>-1)hr=r}
+ if(hr<0){alert("找不到「項目」標題列");return}R[hr].forEach(function(v,c){if(v)col[String(v).trim()]=c});
+ var have={};D.todo.forEach(function(x){have[x.t]=1});var nw=[];
+ for(var k=hr+1;k<R.length;k++){var x=R[k]||[],t=String(x[col["項目"]]||"").trim();if(!t||have[t])continue;nw.push(T(t,String(x[col["說明"]]||"").trim(),String(x[col["分類"]]||"").trim()));have[t]=1}
+ if(!nw.length){alert("沒有新的項目");return}if(!confirm("要匯入 "+nw.length+" 項待辦嗎？"))return;D.todo=D.todo.concat(nw);save();render()
+}catch(x){console.error(x);alert("無法讀取這個檔案："+(x.message||x))}});
+SF.gate(function(u){window.__who=(u&&u.email||"").split("@")[0];
+ SF.watchDoc("docs",KEY,function(d,local){if(local)return;var x=null;try{x=d&&d.data?JSON.parse(d.data):null}catch(e){}
+  if(x)D=x;else{D=JSON.parse(JSON.stringify(DEF));save()}if(!add)render()},
+  function(e){if(e&&e.code==="permission-denied")$("app").innerHTML='<div class="card"><h3>沒有權限</h3><p>會計清單只限管理者與主管查看。</p></div>'})});
+</script>
+</body></html>
