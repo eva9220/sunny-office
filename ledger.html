@@ -74,7 +74,7 @@ function formUI(){var r=ed,isNew=!D.rows.some(function(x){return x.id===r.id});
 
 // 預算對照：實際＝本帳支出（不含轉到零用金的「零用金」）＋零用金憑證
 function actual(){var a={};function add(s,m,v){a[s]=a[s]||{};a[s][m]=(a[s][m]||0)+v}
- D.rows.forEach(function(r){if(N(r.exp)&&r.subj!=="零用金")add(r.subj||"（未分類）",r.date.slice(0,7),N(r.exp))});
+ D.rows.forEach(function(r){if(N(r.exp)&&r.subj!=="零用金"&&r.subj!=="代墊款歸還")add(r.subj||"（未分類）",r.date.slice(0,7),N(r.exp))});
  if(P&&P.v)P.v.forEach(function(v){var t=v.items.reduce(function(s,i){return s+N(i.p)*N(i.q)},0);add(v.subj||"（未分類）",String(v.date).slice(0,7),t)});return a}
 function bUI(){var ms=months(),A=actual(),S=BUDGET_SUBJ.slice();Object.keys(A).forEach(function(s){if(S.indexOf(s)<0)S.push(s)});
  var h='<div class="card"><div class="bar"><span>起始月份</span><input type="month" id="bstart" value="'+D.bstart+'"><span class="note">每格上面填預算，下面是實際支出（本帳＋零用金）。</span></div></div>';

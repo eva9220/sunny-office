@@ -68,7 +68,7 @@ var $=function(i){return document.getElementById(i)},KEY="docs_staff_petty",PHK=
 var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")};
 var N=function(v){v=+v;return isFinite(v)?v:0},M=function(v){return Math.round(N(v)).toLocaleString()};
 var DEN=[1000,500,200,100,50,10,5,1];
-var DEF={mode:"ledger",quota:20000,subj:["薪資支出","勞健退","伙食","水費","電費","郵電費","職工福利","教材費","活動費","雜支","暫收付","租金","稅捐","退費","設備-購置","設備-修繕","交際費"],cats:[["臺電","電費"],["水費","水費"],["文具","雜支"],["清潔","雜支"],["教具採買","教材費"],["老師時薪費用","薪資支出"],["交際費","交際費"]],v:[],reps:[],counts:[]};
+var DEF={adv:[],mode:"ledger",quota:20000,subj:["薪資支出","勞健退","伙食","水費","電費","郵電費","職工福利","教材費","活動費","雜支","暫收付","租金","稅捐","退費","設備-購置","設備-修繕","交際費"],cats:[["臺電","電費"],["水費","水費"],["文具","雜支"],["清潔","雜支"],["教具採買","教材費"],["老師時薪費用","薪資支出"],["交際費","交際費"]],v:[],reps:[],counts:[]};
 var OLD_SUBJ='["人事費","業務費","設備費","雜支"]',LKEY="docs_staff_ledger",LD=null;
 function subjOf(c){var m=D.cats.filter(function(x){return x[0]===c})[0];return m?m[1]:""}
 var D=null,tab="v",ed=null,cur=null,mon="",fs="",cnt={};
@@ -82,18 +82,24 @@ function LM(){return D.mode!=="quota"}
 function linRows(){return LD&&LD.rows?LD.rows.filter(function(r){return r.subj==="零用金"&&N(r.exp)}).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0}):[]}
 function linSum(){return linRows().reduce(function(s,r){return s+N(r.exp)},0)}
 function allSum(){return D.v.reduce(function(s,v){return s+tot(v)},0)}
-function book(){return LM()?linSum()-allSum():N(D.quota)-unpaidSum()}
-function bookTxt(){return LM()?"本帳撥入 $"+M(linSum())+" − 憑證支出 $"+M(allSum()):"定額 $"+M(D.quota)+" − 未撥補 $"+M(unpaidSum())}
+// 代墊款：別人先付、之後由零用金或銀行歸還。登記時視為零用金收到的錢（因為憑證支出已記、零用金實際沒付），從零用金歸還時才扣掉
+function advAll(){return D.adv||(D.adv=[])}
+function advIn(){return advAll().reduce(function(s,a){return s+N(a.amt)},0)}
+function advOutPetty(){return advAll().filter(function(a){return a.st==="已還"&&a.via==="零用金"}).reduce(function(s,a){return s+N(a.amt)},0)}
+function advOpen(){return advAll().filter(function(a){return a.st!=="已還"})}
+function advOpenSum(){return advOpen().reduce(function(s,a){return s+N(a.amt)},0)}
+function book(){return(LM()?linSum()-allSum():N(D.quota)-unpaidSum())+advIn()-advOutPetty()}
+function bookTxt(){return(LM()?"本帳撥入 $"+M(linSum())+" − 憑證支出 $"+M(allSum()):"定額 $"+M(D.quota)+" − 未撥補 $"+M(unpaidSum()))+(advAll().length?" ＋ 代墊 $"+M(advIn())+(advOutPetty()?" − 已用零用金歸還 $"+M(advOutPetty()):""):"")}
 function nextNo(){return D.v.reduce(function(m,v){return Math.max(m,parseInt(v.no,10)||0)},0)+1}
 function save(){SF.set("docs",KEY,{data:JSON.stringify(D)})}
 
 // ===== 畫面 =====
 function render(){if(!D)return;var h="";
  var ub=unpaidSum(),bk=book();
- if(LM())h+='<div class="card"><h3>零用金現況</h3>'+(LD?'':'<p class="bad" style="margin:0 0 6px">本帳還沒有資料，請先到「📒 本帳」匯入。</p>')+'<div class="kv"><span>總收入（本帳「零用金」'+linRows().length+' 筆）</span><b class="ok">$'+M(linSum())+'</b><span>總支出（'+D.v.length+' 張憑證）</span><b>−$'+M(allSum())+'</b><span>帳面應有現金</span><b class="big">$'+M(bk)+'</b></div>'+lastCount()+'</div>';
+ if(LM())h+='<div class="card"><h3>零用金現況</h3>'+(LD?'':'<p class="bad" style="margin:0 0 6px">本帳還沒有資料，請先到「📒 本帳」匯入。</p>')+'<div class="kv"><span>總收入（本帳「零用金」'+linRows().length+' 筆）</span><b class="ok">$'+M(linSum())+'</b><span>總支出（'+D.v.length+' 張憑證）</span><b>−$'+M(allSum())+'</b>'+(advAll().length?'<span>代墊款（別人先付）</span><b>+$'+M(advIn())+'</b>'+(advOutPetty()?'<span>已用零用金歸還代墊</span><b>−$'+M(advOutPetty())+'</b>':''):'')+'<span>帳面應有現金</span><b class="big">$'+M(bk)+'</b></div>'+(advOpen().length?'<p style="margin:8px 0 0;font-size:14px">🤝 尚未歸還的代墊款 <b class="bad">$'+M(advOpenSum())+'</b>（'+advOpen().length+' 筆），到「🤝 代墊款」查看</p>':'')+lastCount()+'</div>';
  else h+='<div class="card"><h3>零用金現況</h3><div class="kv"><span>定額</span><b>$'+M(D.quota)+'</b><span>未撥補支出（'+unpaid().length+' 張憑證）</span><b>−$'+M(ub)+'</b><span>帳面應有現金</span><b class="big">$'+M(bk)+'</b></div>'+lastCount()+'</div>';
- h+='<div class="tabs">'+(LM()?[["v","🧾 憑證"],["in","💵 撥入紀錄"],["c","🪙 點鈔對帳"],["s","📊 月統計"],["set","⚙️ 設定"]]:[["v","🧾 憑證"],["c","🪙 點鈔對帳"],["r","🔄 撥補"],["s","📊 月統計"],["set","⚙️ 設定"]]).map(function(t){return'<button class="b'+(tab===t[0]?' on':'')+'" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</div>';
- if(tab==="v")h+=vUI();else if(tab==="in")h+=inUI();else if(tab==="c")h+=cUI();else if(tab==="r")h+=rUI();else if(tab==="s")h+=sUI();else h+=setUI();
+ h+='<div class="tabs">'+(LM()?[["v","🧾 憑證"],["in","💵 撥入紀錄"],["adv","🤝 代墊款"],["c","🪙 點鈔對帳"],["s","📊 月統計"],["set","⚙️ 設定"]]:[["v","🧾 憑證"],["c","🪙 點鈔對帳"],["r","🔄 撥補"],["s","📊 月統計"],["set","⚙️ 設定"]]).map(function(t){return'<button class="b'+(tab===t[0]?' on':'')+'" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</div>';
+ if(tab==="v")h+=vUI();else if(tab==="in")h+=inUI();else if(tab==="adv")h+=advUI();else if(tab==="c")h+=cUI();else if(tab==="r")h+=rUI();else if(tab==="s")h+=sUI();else h+=setUI();
  $("app").innerHTML=h;if(tab==="v"&&ed)itR();if(tab==="c")cCalc()}
 function lastCount(){var c=D.counts[D.counts.length-1];if(!c)return'<p class="note" style="margin:8px 0 0">還沒有點鈔紀錄，到「🪙 點鈔對帳」點一次現金，看看是否持平。</p>';
  return'<p style="margin:8px 0 0;font-size:14px">上次點鈔（'+E(c.date)+(c.by?'，'+E(c.by):'')+'）：現金 $'+M(c.cash)+'，'+diffTxt(c.cash-c.book)+'</p>'}
@@ -142,6 +148,14 @@ function sUI(){var m=mon||today().slice(0,7),L=D.v.filter(function(v){return Str
  return'<div class="card"><div class="bar"><input type="month" id="smon" value="'+m+'"></div>'+tb("科目","subj")+tb("用途類別","cat")+'</div>'}
 
 // 設定
+var aed=null;
+function advUI(){var A=advAll().slice().sort(function(a,b){return(a.st==="已還")-(b.st==="已還")||(a.date<b.date?-1:1)}),g={};advOpen().forEach(function(a){g[a.who||"（未填）"]=(g[a.who||"（未填）"]||0)+N(a.amt)});
+ var h='<div class="card"><h3>代墊款</h3><p class="note" style="margin:0 0 6px">別人先用自己的錢或信用卡幫中心付款，零用金之後要還的錢。憑證照樣在「🧾 憑證」登記支出，這裡記「欠誰多少」。</p>'+
+ (Object.keys(g).length?'<table class="s"><tr><th>尚未歸還</th><th class="n">金額</th></tr>'+Object.keys(g).map(function(k){return'<tr><td>'+E(k)+'</td><td class="n">'+M(g[k])+'</td></tr>'}).join("")+'<tr><th>合計</th><th class="n">'+M(advOpenSum())+'</th></tr></table>':'<p class="note">目前沒有待還的代墊款。</p>')+
+ '<div class="bar" style="margin-top:8px"><button class="b y" data-act="anew">＋ 新增代墊款</button></div></div>';
+ if(aed)h+='<div class="fm"><b>'+(advAll().some(function(a){return a.id===aed.id})?"修改":"新增")+'代墊款</b><div class="row2"><div><label>日期</label><input type="date" id="a_date" value="'+E(aed.date)+'"></div><div><label>墊付人</label><input id="a_who" list="dl_who" value="'+E(aed.who)+'"><datalist id="dl_who">'+Array.from(new Set(advAll().map(function(a){return a.who}).filter(Boolean))).map(function(w){return'<option value="'+E(w)+'">'}).join("")+'</datalist></div></div><label>項目（買了什麼）</label><input id="a_item" value="'+E(aed.item)+'"><div class="row2"><div><label>金額</label><input id="a_amt" type="number" inputmode="numeric" value="'+E(aed.amt)+'"></div><div><label>付款方式</label><input id="a_how" placeholder="例如 信用卡" value="'+E(aed.how)+'"></div></div><label>備註</label><input id="a_note" value="'+E(aed.note)+'"><div class="bar" style="margin-top:10px"><button class="b g" data-act="aok">儲存</button><button class="b" data-act="ano">取消</button>'+(advAll().some(function(a){return a.id===aed.id})?'<button class="b" data-act="adel" style="margin-left:auto">刪除</button>':'')+'</div></div>';
+ h+=A.map(function(a){var done=a.st==="已還";return'<div class="it"><div class="t"><b>'+E(a.who||"（未填）")+'　'+E(a.item)+'</b><span class="amt">$'+M(a.amt)+'</span></div><small><span class="st '+(done?'r">已還':'u">待還')+'</span>'+E(a.date)+(a.how?' ・ '+E(a.how):'')+(done?' ・ '+E(a.pd)+' 由'+E(a.via)+'歸還':'')+(a.note?' ・ '+E(a.note):'')+'</small><div class="bar" style="margin:6px 0 0">'+(done?'<button class="b" data-aundo="'+a.id+'">改回待還</button>':'<button class="b g" data-apay="'+a.id+'">💵 用零用金還</button><button class="b" data-abank="'+a.id+'">🏦 從銀行轉帳還</button>')+'<button class="b" data-aed="'+a.id+'">編輯</button></div></div>'}).join("");
+ return h}
 function inUI(){var R=linRows();return'<div class="card"><h3>從本帳撥入零用金</h3><p class="note" style="margin:0 0 6px">本帳裡科目是「零用金」的支出，就是撥進零用金的錢。要新增請到「📒 本帳」記一筆，科目選「零用金」。</p>'+(R.length?'<table class="s"><tr><th>日期</th><th>項目／備註</th><th class="n">金額</th></tr>'+R.map(function(r){return'<tr><td>'+E(r.date)+'</td><td>'+E(r.item)+(r.note?'<br><small class="note">'+E(r.note)+'</small>':'')+'</td><td class="n">'+M(r.exp)+'</td></tr>'}).join("")+'<tr><th colspan="2">合計 '+R.length+' 筆</th><th class="n">'+M(linSum())+'</th></tr></table>':'<p class="note">本帳裡還沒有「零用金」的支出。</p>')+'<p style="margin:10px 0 0"><a class="b" href="ledger.html" style="text-decoration:none">前往本帳 ›</a></p></div>'}
 function setUI(){return'<div class="card"><h3>設定</h3><label class="note">零用金收入怎麼算</label><select id="s_mode" style="width:100%"><option value="ledger"'+(LM()?' selected':'')+'>依本帳：本帳「零用金」支出的加總＝零用金總收入</option><option value="quota"'+(LM()?'':' selected')+'>定額制：固定額度，花多少補多少</option></select><label class="note" style="display:block;margin-top:8px">零用金定額（元，定額制才會用到）</label><input id="s_quota" type="number" inputmode="numeric" value="'+E(D.quota)+'" style="width:100%"><label class="note" style="display:block;margin-top:8px">科目（一行一個）</label><textarea id="s_subj" rows="5" style="width:100%">'+E(D.subj.join("\n"))+'</textarea><label class="note" style="display:block;margin-top:8px">用途類別＝科目（一行一個，例如「臺電＝業務費」）</label><textarea id="s_cats" rows="9" style="width:100%">'+E(D.cats.map(function(c){return c[0]+"＝"+c[1]}).join("\n"))+'</textarea><div class="bar" style="margin-top:8px"><button class="b g" data-act="sset">儲存設定</button></div></div>'}
 
@@ -201,6 +215,21 @@ document.body.addEventListener("click",async function(e){var t=e.target.closest(
  if(t.dataset.pvp){try{window.print()}catch(x){alert("這個瀏覽器不能列印，請按「存成 PDF」")}return}
  if(t.dataset.pvf){savePdf(t);return}
  if(t.dataset.pvx){$("pvw").classList.remove("show");return}
+ if(t.dataset.tab){tab=t.dataset.tab;ed=null;aed=null;render();return}
+ if(t.dataset.aed){aed=JSON.parse(JSON.stringify(advAll().filter(function(a){return a.id===t.dataset.aed})[0]));render();return}
+ if(t.dataset.apay||t.dataset.abank){var bank=!!t.dataset.abank,a0=advAll().filter(function(a){return a.id===(t.dataset.apay||t.dataset.abank)})[0];if(!a0)return;
+  if(!confirm((bank?"從公司銀行轉帳":"從零用金拿現金")+"還 "+(a0.who||"墊付人")+" $"+M(a0.amt)+"？"+(bank?"\n（會在本帳記一筆支出「代墊款歸還」，零用金不扣錢）":"\n（零用金帳面會扣掉這筆）")))return;
+  a0.st="已還";a0.via=bank?"銀行":"零用金";a0.pd=today();
+  if(bank){var L2=LD||{rows:[]};L2.rows=L2.rows||[];a0.lid=uid();L2.rows.push({id:a0.lid,date:a0.pd,item:"歸還"+(a0.who||"")+"代墊："+a0.item,subj:"代墊款歸還",inc:"",exp:a0.amt,note:"零用金代墊款"});LD=L2;SF.set("docs",LKEY,{data:JSON.stringify(L2)})}
+  save();render();return}
+ if(t.dataset.aundo){var a1=advAll().filter(function(a){return a.id===t.dataset.aundo})[0];if(!a1||!confirm("改回「待還」？"+(a1.via==="銀行"?"\n（本帳那筆「代墊款歸還」也會刪掉）":"")))return;
+  if(a1.via==="銀行"&&a1.lid&&LD&&LD.rows){LD.rows=LD.rows.filter(function(r){return r.id!==a1.lid});SF.set("docs",LKEY,{data:JSON.stringify(LD)})}
+  a1.st="待還";delete a1.via;delete a1.pd;delete a1.lid;save();render();return}
+ if(t.dataset.act==="anew"){aed={id:uid(),date:today(),who:"",item:"",amt:"",how:"信用卡",note:"",st:"待還"};render();return}
+ if(t.dataset.act==="ano"){aed=null;render();return}
+ if(t.dataset.act==="aok"){["date","who","item","amt","how","note"].forEach(function(k){aed[k]=$("a_"+k).value.trim()});aed.amt=N(aed.amt);if(!aed.amt||!aed.item){alert("請填項目和金額");return}
+  var ix=advAll().map(function(a){return a.id}).indexOf(aed.id);if(ix>-1)D.adv[ix]=aed;else D.adv.push(aed);aed=null;save();render();return}
+ if(t.dataset.act==="adel"){if(!confirm("刪除這筆代墊款？"))return;D.adv=advAll().filter(function(a){return a.id!==aed.id});aed=null;save();render();return}
  if(t.dataset.tab){tab=t.dataset.tab;ed=null;render();return}
  if(t.dataset.ed){openEdit(t.dataset.ed);return}
  if(t.dataset.pr){var v=D.v.filter(function(x){return x.id===t.dataset.pr})[0];if(v)doPrint(vPage(v));return}
@@ -240,16 +269,21 @@ async function importV(f){var sh=await readSheet(f,/憑證|零用金/),R=sh.rows
  R[hr].forEach(function(v,c){if(v)col[String(v).trim()]=c});
  // 零用金收支表格式（序、日期、項目、科目、收入、支出、備註）：只取「支出」欄，收入由本帳「零用金」計算
  var ledgerFmt=col["金額"]==null&&col["支出"]!=null;if(ledgerFmt){col["金額"]=col["支出"];if(col["用途類別"]==null)col["用途類別"]=col["項目"]}
+ var advNew=[];if(ledgerFmt&&col["收入"]!=null){for(var j=hr+1;j<R.length;j++){var y=R[j]||[],dd=isoD(y[col["日期"]]),inc=N(y[col["收入"]]),it2=String(y[col["項目"]]||""),sj2=String(y[col["科目"]]||"");
+  if(!dd||!inc||(sj2.indexOf("代墊")<0&&it2.indexOf("代墊")<0))continue;var who=(it2.match(/^(.+?)信用卡墊付/)||it2.match(/(父親|爸爸|母親|媽媽)/)||[])[1]||"";
+  advNew.push({id:uid(),date:dd,who:who==="父親"?"爸爸":who,item:it2.replace(/（待還）/,""),amt:inc,how:it2.indexOf("信用卡")>-1?"信用卡":"",note:String(y[col["備註"]]||"").trim(),st:"待還"})}
+  var hv={};advAll().forEach(function(a){hv[a.date+"|"+N(a.amt)+"|"+a.item]=1});advNew=advNew.filter(function(a){return!hv[a.date+"|"+N(a.amt)+"|"+a.item]})}
  var out=[];for(var i=hr+1;i<R.length;i++){var x=R[i]||[],d=isoD(x[col["日期"]]),amt=N(x[col["金額"]]);if(!d||!amt)continue;
   var cat=String(x[col["用途類別"]]||"").trim(),it=String(x[col["項目"]]||cat).trim();
   out.push({id:uid(),no:"",date:d,cat:cat,subj:String(x[col["科目"]]||"").trim()||subjOf(cat)||"",items:[{n:it,p:String(amt),q:"1",note:""}],payee:String(x[col["領款人"]]||"").trim()||((String(x[col["備註"]]||"").match(/領款人\s*([^；;]+)/)||[])[1]||"").trim(),note:String(x[col["備註"]]||"").trim(),rep:null})}
- if(!out.length){alert("沒有讀到資料");return}
+ if(!out.length&&!advNew.length){alert("沒有讀到資料");return}
  var sig=function(v){return v.date+"|"+tot(v)+"|"+v.items.map(function(i){return i.n}).join("、")},have={};D.v.forEach(function(v){have[sig(v)]=1});
  var nw=out.filter(function(v){return!have[sig(v)]}),sum=nw.reduce(function(s,v){return s+tot(v)},0);
- if(!nw.length){alert("檔案裡的 "+out.length+" 張都已經登記過了");return}
- if(!confirm("要匯入 "+nw.length+" 張憑證嗎？合計 $"+M(sum)+(out.length>nw.length?"\n（另有 "+(out.length-nw.length)+" 張已存在，略過）":"")))return;
+ if(!nw.length&&!advNew.length){alert("檔案裡的 "+out.length+" 張都已經登記過了");return}
+ if(!confirm("要匯入 "+nw.length+" 張憑證嗎？合計 $"+M(sum)+(advNew.length?"\n另有代墊款 "+advNew.length+" 筆，合計 $"+M(advNew.reduce(function(s,a){return s+a.amt},0)):"")+(out.length>nw.length?"\n（另有 "+(out.length-nw.length)+" 張已存在，略過）":"")))return;
+ D.adv=advAll().concat(advNew);
  nw.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});var n=nextNo();nw.forEach(function(v){v.no=String(n++);v.nph=0;if(v.subj&&D.subj.indexOf(v.subj)<0)D.subj.push(v.subj);if(v.cat&&!D.cats.some(function(c){return c[0]===v.cat}))D.cats.push([v.cat,v.subj])});
- D.v=D.v.concat(nw);save();render();alert("已匯入 "+nw.length+" 張")}
+ D.v=D.v.concat(nw);save();render();alert("已匯入 "+nw.length+" 張"+(advNew.length?"、代墊款 "+advNew.length+" 筆":""))}
 document.body.insertAdjacentHTML("beforeend",'<input type="file" id="vimf" accept=".xlsx" hidden>');
 $("vimf").addEventListener("change",async function(){var f=this.files[0];this.value="";if(!f)return;try{await importV(f)}catch(x){console.error(x);alert("無法讀取這個檔案："+(x.message||x))}});
 </script>
