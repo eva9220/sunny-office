@@ -22,7 +22,7 @@ input[type=date],input[type=month]{-webkit-appearance:none;appearance:none;min-h
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 12px}
 .it{background:#fffdf9;border-radius:18px;padding:10px 14px;margin-bottom:10px;box-shadow:0 3px 0 var(--line)}
 .it .t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.it .t b{font-size:16px}
-.it small{color:var(--sub)}.amt{color:var(--p);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.it small{color:var(--sub)}.pk{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:12px;margin:8px 0;padding:2px 8px;background:#fff}.pk label{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14px}.pk label:last-child{border-bottom:0}.pk input{width:20px;height:20px;flex:0 0 20px}.pk .a{margin-left:auto;font-weight:700;white-space:nowrap}.amt{color:var(--p);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
 .st{display:inline-block;border-radius:999px;padding:0 9px;font-size:12px;margin-right:6px}.st.u{background:#fbe9c8}.st.r{background:#e2f0e6}
 .fm{background:#fffdf9;border:2px dashed #c9a35c;border-radius:20px;padding:12px;margin-bottom:12px}
 .fm label{display:block;font-size:13px;color:var(--sub);margin:6px 0 2px}.fm input,.fm select,.fm textarea{width:100%}
@@ -115,7 +115,7 @@ function vUI(){var h="";
  var L=D.v.filter(function(v){return(!mon||String(v.date).slice(0,7)===mon)&&(!fs||v.cat===fs)}).sort(function(a,b){return(parseInt(b.no,10)||0)-(parseInt(a.no,10)||0)});
  h+='<p class="note">共 '+L.length+' 張，合計 $'+M(L.reduce(function(s,v){return s+tot(v)},0))+'</p>';
  h+=L.map(function(v){return'<div class="it"><div class="t"><b>#'+E(v.no)+' '+E(v.cat||"（未選用途）")+'</b><span class="amt">$'+M(tot(v))+'</span></div><small>'+(LM()?'':'<span class="st '+(v.rep?'r">已撥補':'u">未撥補')+'</span>')+E(v.date)+(v.subj?' ・ '+E(v.subj):'')+(v.payee?' ・ 領款人 '+E(v.payee):'')+(v.nph?' ・ 📎'+v.nph:'')+advTag(v)+'</small><div style="font-size:14px">'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</div><div class="bar" style="margin:6px 0 0"><button class="b" data-ed="'+v.id+'">編輯</button><button class="b" data-pr="'+v.id+'">🖨️ 列印支出表</button>'+(advOf(v)?'':'<button class="b" data-toadv="'+v.id+'">🤝 別人先付（記代墊款）</button>')+'</div></div>'}).join("")||'<p class="note" style="text-align:center">這個條件下沒有憑證。</p>';
- h+='<div class="bar" style="margin-top:6px"><button class="b" data-act="prm">🖨️ 列印本月全部支出表</button><button class="b" data-act="cover">🖨️ 列印封面</button><button class="b" data-act="xl">📥 匯出 Excel</button><button class="b" data-act="vimp">📤 匯入憑證 Excel</button></div>';
+ h+='<div class="bar" style="margin-top:6px"><button class="b" data-act="prm">🖨️ 列印本月全部支出表</button><button class="b" data-act="cover">🖨️ 列印封面</button><button class="b" data-act="xl">📥 匯出 Excel</button><button class="b" data-act="vimp">📤 匯入憑證 Excel</button><button class="b" data-act="renum">🔢 重新編號</button></div>';
  return h}
 function formUI(){var v=ed;return'<div class="fm"><b>'+(D.v.some(function(x){return x.id===v.id})?"編輯":"新增")+'憑證 #'+E(v.no)+'</b>'+(v.rep?'<p class="note">這張已經撥補過，修改金額會影響撥補紀錄。</p>':'')+
  '<div class="row2"><div><label>日期</label><input type="date" id="f_date" value="'+E(v.date)+'"></div><div><label>編號</label><input id="f_no" value="'+E(v.no)+'"></div></div>'+
@@ -156,7 +156,7 @@ function sUI(){var m=mon||today().slice(0,7),L=D.v.filter(function(v){return Str
  return'<div class="card"><div class="bar"><input type="month" id="smon" value="'+m+'"></div>'+tb("科目","subj")+tb("用途類別","cat")+'</div>'}
 
 // 設定
-var aed=null;
+var aed=null,alk=null;
 function advOf(v){return v.aid?advAll().filter(function(a){return a.id===v.aid})[0]:null}
 function advTag(v){var a=advOf(v);return a?' ・ <span class="st '+(a.st==="已還"?'r">代墊已還':'u">代墊待還')+'（'+E(a.who||"")+'）</span>':''}
 function advUI(){var A=advAll().slice().sort(function(a,b){return(a.st==="已還")-(b.st==="已還")||(a.date<b.date?-1:1)}),g={};advOpen().forEach(function(a){g[a.who||"（未填）"]=(g[a.who||"（未填）"]||0)+N(a.amt)});
@@ -164,8 +164,11 @@ function advUI(){var A=advAll().slice().sort(function(a,b){return(a.st==="已還
  (Object.keys(g).length?'<table class="s"><tr><th>尚未歸還</th><th class="n">金額</th></tr>'+Object.keys(g).map(function(k){return'<tr><td>'+E(k)+'</td><td class="n">'+M(g[k])+'</td></tr>'}).join("")+'<tr><th>合計</th><th class="n">'+M(advOpenSum())+'</th></tr></table>':'<p class="note">目前沒有待還的代墊款。</p>')+
  '<div class="bar" style="margin-top:8px"><button class="b y" data-act="anew">＋ 新增代墊款</button></div></div>';
  if(aed)h+='<div class="fm"><b>'+(advAll().some(function(a){return a.id===aed.id})?"修改":"新增")+'代墊款</b><div class="row2"><div><label>日期</label><input type="date" id="a_date" value="'+E(aed.date)+'"></div><div><label>墊付人</label><input id="a_who" list="dl_who" value="'+E(aed.who)+'"><datalist id="dl_who">'+Array.from(new Set(advAll().map(function(a){return a.who}).filter(Boolean))).map(function(w){return'<option value="'+E(w)+'">'}).join("")+'</datalist></div></div><label>項目（買了什麼）</label><input id="a_item" value="'+E(aed.item)+'"><div class="row2"><div><label>金額</label><input id="a_amt" type="number" inputmode="numeric" value="'+E(aed.amt)+'"></div><div><label>付款方式</label><input id="a_how" placeholder="例如 信用卡" value="'+E(aed.how)+'"></div></div><label>備註</label><input id="a_note" value="'+E(aed.note)+'"><div class="bar" style="margin-top:10px"><button class="b g" data-act="aok">儲存</button><button class="b" data-act="ano">取消</button>'+(advAll().some(function(a){return a.id===aed.id})?'<button class="b" data-act="adel" style="margin-left:auto">刪除</button>':'')+'</div></div>';
- h+=A.map(function(a){var done=a.st==="已還";return'<div class="it"><div class="t"><b>'+E(a.who||"（未填）")+'　'+E(a.item)+'</b><span class="amt">$'+M(a.amt)+'</span></div><small><span class="st '+(done?'r">已還':'u">待還')+'</span>'+E(a.date)+(a.how?' ・ '+E(a.how):'')+(done?' ・ '+E(a.pd)+' 由'+E(a.via)+'歸還':'')+(a.note?' ・ '+E(a.note):'')+(function(){var L=advV(a),t=L.reduce(function(s,v){return s+tot(v)},0);return L.length?' ・ 🧾 憑證 #'+L.map(function(v){return E(v.no)}).join("、#")+(t!==N(a.amt)?' <span class="bad">（憑證合計 $'+M(t)+'，和代墊金額不同）</span>':''):' ・ <span class="bad">還沒有憑證</span>'})()+'</small><div class="bar" style="margin:6px 0 0">'+(done?'<button class="b" data-aundo="'+a.id+'">改回待還</button>':'<button class="b g" data-apay="'+a.id+'">💵 用零用金還</button><button class="b" data-abank="'+a.id+'">🏦 從銀行轉帳還</button>')+(advV(a).length?'':'<button class="b" data-tov="'+a.id+'">🧾 開憑證</button>')+'<button class="b" data-alink="'+a.id+'">🔗 連結現有憑證</button>'+'<button class="b" data-aed="'+a.id+'">編輯</button></div></div>'}).join("");
+ h+=A.map(function(a){var done=a.st==="已還";return'<div class="it"><div class="t"><b>'+E(a.who||"（未填）")+'　'+E(a.item)+'</b><span class="amt">$'+M(a.amt)+'</span></div><small><span class="st '+(done?'r">已還':'u">待還')+'</span>'+E(a.date)+(a.how?' ・ '+E(a.how):'')+(done?' ・ '+E(a.pd)+' 由'+E(a.via)+'歸還':'')+(a.note?' ・ '+E(a.note):'')+(function(){var L=advV(a),t=L.reduce(function(s,v){return s+tot(v)},0);return L.length?' ・ 🧾 憑證 #'+L.map(function(v){return E(v.no)}).join("、#")+(t!==N(a.amt)?' <span class="bad">（憑證合計 $'+M(t)+'，和代墊金額不同）</span>':''):' ・ <span class="bad">還沒有憑證</span>'})()+'</small><div class="bar" style="margin:6px 0 0">'+(done?'<button class="b" data-aundo="'+a.id+'">改回待還</button>':'<button class="b g" data-apay="'+a.id+'">💵 用零用金還</button><button class="b" data-abank="'+a.id+'">🏦 從銀行轉帳還</button>')+(advV(a).length?'':'<button class="b" data-tov="'+a.id+'">🧾 開憑證</button>')+'<button class="b" data-alink="'+a.id+'">🔗 連結現有憑證</button>'+'<button class="b" data-aed="'+a.id+'">編輯</button></div>'+(alk===a.id?pickUI(a):'')+'</div>'}).join("");
  return h}
+function pickUI(a){var ad=Date.parse(a.date)||0,L=D.v.filter(function(v){return!v.aid||v.aid===a.id}).sort(function(x,y){return(y.aid===a.id)-(x.aid===a.id)||Math.abs((Date.parse(x.date)||0)-ad)-Math.abs((Date.parse(y.date)||0)-ad)});
+ return'<div class="fm" style="margin-top:8px"><b>勾選這筆代墊款的憑證</b><p class="note" style="margin:2px 0 0">日期越接近的排越前面；已連到其他代墊款的不會出現。</p><div class="pk">'+(L.map(function(v){return'<label><input type="checkbox" data-pk="'+v.id+'" data-amt="'+tot(v)+'"'+(v.aid===a.id?' checked':'')+'><span>#'+E(v.no)+' '+E(v.date)+'<br><small>'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、")||v.cat)+'</small></span><span class="a">$'+M(tot(v))+'</span></label>'}).join("")||'<p class="note">沒有可以連結的憑證。</p>')+'</div><p id="pksum" style="margin:0">'+pkSum(a)+'</p><div class="bar" style="margin-top:8px"><button class="b g" data-act="pkok">儲存</button><button class="b" data-act="pkno">取消</button></div></div>'}
+function pkSum(a){var t=0;if(document.querySelector("[data-pk]"))document.querySelectorAll("[data-pk]:checked").forEach(function(c){t+=N(c.dataset.amt)});else t=advV(a).reduce(function(s,v){return s+tot(v)},0);var d=N(a.amt)-t;return'已選 <b>$'+M(t)+'</b> ／ 代墊 $'+M(a.amt)+(d?' <span class="bad">（差 $'+M(d)+'）</span>':' <span class="ok">✓ 金額相符</span>')}
 function inUI(){var R=linRows();return'<div class="card"><h3>從本帳撥入零用金</h3><p class="note" style="margin:0 0 6px">本帳裡科目是「零用金」的支出，就是撥進零用金的錢。要新增請到「📒 本帳」記一筆，科目選「零用金」。</p>'+(R.length?'<table class="s"><tr><th>日期</th><th>項目／備註</th><th class="n">金額</th></tr>'+R.map(function(r){return'<tr><td>'+E(r.date)+'</td><td>'+E(r.item)+(r.note?'<br><small class="note">'+E(r.note)+'</small>':'')+'</td><td class="n">'+M(r.exp)+'</td></tr>'}).join("")+'<tr><th colspan="2">合計 '+R.length+' 筆</th><th class="n">'+M(linSum())+'</th></tr></table>':'<p class="note">本帳裡還沒有「零用金」的支出。</p>')+'<p style="margin:10px 0 0"><a class="b" href="ledger.html" style="text-decoration:none">前往本帳 ›</a></p></div>'}
 function setUI(){return'<div class="card"><h3>設定</h3><label class="note">零用金收入怎麼算</label><select id="s_mode" style="width:100%"><option value="ledger"'+(LM()?' selected':'')+'>依本帳：本帳「零用金」支出的加總＝零用金總收入</option><option value="quota"'+(LM()?'':' selected')+'>定額制：固定額度，花多少補多少</option></select><label class="note" style="display:block;margin-top:8px">零用金定額（元，定額制才會用到）</label><input id="s_quota" type="number" inputmode="numeric" value="'+E(D.quota)+'" style="width:100%"><label class="note" style="display:block;margin-top:8px">科目（一行一個）</label><textarea id="s_subj" rows="5" style="width:100%">'+E(D.subj.join("\n"))+'</textarea><label class="note" style="display:block;margin-top:8px">用途類別＝科目（一行一個，例如「臺電＝業務費」）</label><textarea id="s_cats" rows="9" style="width:100%">'+E(D.cats.map(function(c){return c[0]+"＝"+c[1]}).join("\n"))+'</textarea><div class="bar" style="margin-top:8px"><button class="b g" data-act="sset">儲存設定</button></div></div><div class="card"><h3>重新匯入</h3><p class="note" style="margin:0 0 6px">匯入過舊版檔案造成重複時，可以先清除再匯入最新版。清除後無法復原，建議先「📥 匯出 Excel」備份。</p><div class="bar"><button class="b" data-act="vclear">🗑️ 清除全部憑證（目前 '+D.v.length+' 張）</button><button class="b" data-act="aclear">🗑️ 清除全部代墊款（目前 '+advAll().length+' 筆）</button></div></div>'}
 
@@ -220,6 +223,7 @@ document.body.addEventListener("input",function(e){var t=e.target;
  else if(t.dataset.accv!==undefined){accs()[+t.dataset.accv].v=t.value;cCalc()}
  else if(t.dataset.accn!==undefined){accs()[+t.dataset.accn].n=t.value}});
 document.body.addEventListener("change",async function(e){var t=e.target;
+ if(t.dataset.pk){var ap=advAll().filter(function(a){return a.id===alk})[0];if(ap)$("pksum").innerHTML=pkSum(ap);return}
  if(t.id==="mon"){mon=t.value;render()}else if(t.id==="smon"){mon=t.value;render()}else if(t.id==="fs"){fs=t.value;render()}
  else if(t.id==="f_cat"&&ed){var sj=subjOf(t.value);if(sj&&$("f_subj"))$("f_subj").value=sj}
  else if(t.id==="f_ph"&&ed){ed.ph=ed.ph||[];for(var f of t.files){if(ed.ph.length<2)ed.ph.push(await shrink(f))}t.value="";pv()}});
@@ -227,18 +231,16 @@ document.body.addEventListener("click",async function(e){var t=e.target.closest(
  if(t.dataset.pvp){try{window.print()}catch(x){alert("這個瀏覽器不能列印，請按「存成 PDF」")}return}
  if(t.dataset.pvf){savePdf(t);return}
  if(t.dataset.pvx){$("pvw").classList.remove("show");return}
- if(t.dataset.tab){tab=t.dataset.tab;ed=null;aed=null;render();return}
+ if(t.dataset.tab){tab=t.dataset.tab;ed=null;aed=null;alk=null;render();return}
  if(t.dataset.toadv){var vv=D.v.filter(function(x){return x.id===t.dataset.toadv})[0];if(!vv||advOf(vv))return;
   var who=prompt("是誰先付錢的？（憑證 #"+vv.no+" $"+M(tot(vv))+"）",vv.payee||"");if(who==null)return;who=who.trim();if(!who){alert("請填墊付人");return}
   var how=prompt("付款方式？（例如 現金、信用卡）","現金");if(how==null)return;
   var na=uid();vv.aid=na;advAll().push({id:na,date:vv.date,who:who,item:"#"+vv.no+" "+(vv.cat||vv.items.map(function(i){return i.n}).filter(Boolean).join("、")),amt:tot(vv),how:how.trim(),note:"",st:"待還"});
   save();render();alert("已列入代墊款：欠 "+who+" $"+M(tot(vv))+"\n還錢時到「🤝 代墊款」按「用零用金還」");return}
- if(t.dataset.alink){var a3=advAll().filter(function(a){return a.id===t.dataset.alink})[0];if(!a3)return;
-  var cur=advV(a3).map(function(v){return v.no}).join(","),ans=prompt("這筆代墊款（"+(a3.who||"")+" $"+M(a3.amt)+"）對應哪幾張憑證？\n輸入憑證編號，多張用逗號分開，例如 41,64\n清空＝取消全部連結",cur);if(ans==null)return;
-  var nos=ans.split(/[,，、\s#]+/).filter(Boolean),bad=[],pick=[];nos.forEach(function(n){var v=D.v.filter(function(x){return String(x.no)===n})[0];if(!v)bad.push(n);else if(v.aid&&v.aid!==a3.id)bad.push(n+"（已連到別筆代墊款）");else pick.push(v)});
-  if(bad.length){alert("找不到或不能連結的憑證：#"+bad.join("、#"));return}
-  D.v.forEach(function(v){if(v.aid===a3.id)delete v.aid});pick.forEach(function(v){v.aid=a3.id});save();render();
-  var tt=pick.reduce(function(s,v){return s+tot(v)},0);if(pick.length&&tt!==N(a3.amt))alert("已連結。提醒：憑證合計 $"+M(tt)+"，代墊金額 $"+M(a3.amt)+"，差 $"+M(N(a3.amt)-tt));return}
+ if(t.dataset.alink){alk=alk===t.dataset.alink?null:t.dataset.alink;aed=null;render();return}
+ if(t.dataset.act==="pkno"){alk=null;render();return}
+ if(t.dataset.act==="pkok"){var a3=advAll().filter(function(a){return a.id===alk})[0];if(!a3)return;var ids={};document.querySelectorAll("[data-pk]:checked").forEach(function(c){ids[c.dataset.pk]=1});
+  D.v.forEach(function(v){if(v.aid===a3.id&&!ids[v.id])delete v.aid;if(ids[v.id])v.aid=a3.id});alk=null;save();render();return}
  if(t.dataset.tov){var a2=advAll().filter(function(a){return a.id===t.dataset.tov})[0];if(!a2||advV(a2).length)return;var c1=(D.cats[0]&&D.cats[0][0])||"";
   tab="v";aed=null;ed={id:uid(),no:String(nextNo()),date:a2.date||today(),subj:subjOf(c1)||D.subj[0]||"",cat:c1,items:[{n:a2.item||"",p:String(N(a2.amt)),q:"1",note:""}],payee:a2.who||"",note:"代墊款"+(a2.how?"（"+a2.how+"）":""),rep:null,ph:[],_aid:a2.id};render();window.scrollTo(0,0);return}
  if(t.dataset.aed){aed=JSON.parse(JSON.stringify(advAll().filter(function(a){return a.id===t.dataset.aed})[0]));render();return}
@@ -275,6 +277,9 @@ document.body.addEventListener("click",async function(e){var t=e.target.closest(
  else if(a==="cover"){doPrint(cover(mon||today().slice(0,7)))}
  else if(a==="xl"){exportXl()}
  else if(a==="vimp"){$("vimf").click()}
+ else if(a==="renum"){if(!D.v.length)return;var S=D.v.slice().sort(function(x,y){return x.date<y.date?-1:x.date>y.date?1:(parseInt(x.no,10)||0)-(parseInt(y.no,10)||0)}),ch=S.filter(function(v,i){return String(v.no)!==String(i+1)}).length;
+  if(!ch){alert("編號已經是 1～"+S.length+" 連續的，不用重排");return}
+  if(!confirm("依日期把 "+S.length+" 張憑證重新編成 #1～#"+S.length+"？\n會有 "+ch+" 張編號改變。\n已經印出來、寫了編號的紙本要照新編號改。"))return;S.forEach(function(v,i){v.no=String(i+1)});save();render();alert("已重新編號 #1～#"+S.length)}
  else if(a==="csave"){var c=cCash();if(!c&&!confirm("實際合計是 0 元，確定要記錄嗎？"))return;D.counts.push({id:uid(),date:today(),by:$("c_by").value.trim(),note:$("c_note").value.trim(),cash:c,acc:accSum(),accts:JSON.parse(JSON.stringify(accs())),book:book(),den:JSON.parse(JSON.stringify(cnt))});save();render()}
  else if(a==="cclr"){cnt={};accs().forEach(function(x){x.v=""});render()}
  else if(a==="accadd"){accs().push({n:"",v:""});$("accw").innerHTML=accUI();cCalc()}
