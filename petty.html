@@ -101,8 +101,8 @@ function render(){if(!D)return;var h="";
  h+='<div class="tabs">'+(LM()?[["v","🧾 憑證"],["in","💵 撥入紀錄"],["adv","🤝 代墊款"],["c","🪙 點鈔對帳"],["s","📊 月統計"],["set","⚙️ 設定"]]:[["v","🧾 憑證"],["c","🪙 點鈔對帳"],["r","🔄 撥補"],["s","📊 月統計"],["set","⚙️ 設定"]]).map(function(t){return'<button class="b'+(tab===t[0]?' on':'')+'" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</div>';
  if(tab==="v")h+=vUI();else if(tab==="in")h+=inUI();else if(tab==="adv")h+=advUI();else if(tab==="c")h+=cUI();else if(tab==="r")h+=rUI();else if(tab==="s")h+=sUI();else h+=setUI();
  $("app").innerHTML=h;if(tab==="v"&&ed)itR();if(tab==="c")cCalc()}
-function lastCount(){var c=D.counts[D.counts.length-1];if(!c)return'<p class="note" style="margin:8px 0 0">還沒有點鈔紀錄，到「🪙 點鈔對帳」點一次現金，看看是否持平。</p>';
- return'<p style="margin:8px 0 0;font-size:14px">上次點鈔（'+E(c.date)+(c.by?'，'+E(c.by):'')+'）：現金 $'+M(c.cash)+'，'+diffTxt(c.cash-c.book)+'</p>'}
+function lastCount(){var c=D.counts[D.counts.length-1];if(!c)return'<p class="note" style="margin:8px 0 0">還沒有點鈔紀錄，到「🪙 點鈔對帳」點一次現金（含帳戶裡的零用金），看看是否持平。</p>';
+ return'<p style="margin:8px 0 0;font-size:14px">上次點鈔（'+E(c.date)+(c.by?'，'+E(c.by):'')+'）：實際 $'+M(c.cash)+(c.acc?'（含帳戶 $'+M(c.acc)+'）':'')+'，'+diffTxt(c.cash-c.book)+'</p>'}
 function diffTxt(d){return d===0?'<span class="ok">✅ 持平</span>':d<0?'<span class="bad">短少 $'+M(-d)+'</span>':'<span class="bad">多出 $'+M(d)+'</span>'}
 
 // 憑證
@@ -131,11 +131,16 @@ function getPh(id){return new Promise(function(res){var u=SF.watchDoc("docs",PHK
 
 // 點鈔
 function cUI(){var bk=book();return'<div class="card"><h3>點鈔對帳</h3><p class="note" style="margin:0 0 8px">把零用金盒裡的現金依面額數一數，填張數或枚數。</p><div class="den">'+DEN.map(function(d){return'<span>'+(d>=100?d+' 元鈔':d+' 元硬幣')+'</span><input type="number" inputmode="numeric" min="0" data-den="'+d+'" value="'+E(cnt[d]||"")+'" placeholder="0"><span data-dsum="'+d+'"></span>'}).join("")+'</div>'+
- '<div class="kv" style="margin-top:10px;border-top:1px dashed var(--line);padding-top:8px"><span>實際現金</span><b id="c_cash"></b><span>帳面應有現金（'+bookTxt()+'）</span><b>$'+M(bk)+'</b><span>結果</span><b id="c_res"></b></div>'+
+ '<h3 style="margin-top:14px">存在帳戶裡的零用金</h3><p class="note" style="margin:0 0 6px">零用金如果有存進帳戶（例如網購用的帳戶），填帳戶裡<b>屬於零用金</b>的金額，個人的錢要扣掉。</p><div id="accw">'+accUI()+'</div><button class="b" type="button" data-act="accadd">＋ 新增帳戶</button>'+
+ '<div class="kv" style="margin-top:10px;border-top:1px dashed var(--line);padding-top:8px"><span>現金盒</span><b id="c_box"></b><span>帳戶裡的零用金</span><b id="c_acc"></b><span>實際合計</span><b id="c_cash"></b><span>帳面應有現金（'+bookTxt()+'）</span><b>$'+M(bk)+'</b><span>結果</span><b id="c_res"></b></div>'+
  '<div class="row2" style="margin-top:8px"><input id="c_by" placeholder="點鈔人"><input id="c_note" placeholder="備註（選填）"></div><div class="bar" style="margin-top:8px"><button class="b g" data-act="csave">記錄這次點鈔</button><button class="b" data-act="cclr">清空</button></div></div>'+
- '<div class="card"><h3>點鈔紀錄</h3>'+(D.counts.length?'<table class="s"><tr><th>日期</th><th>點鈔人</th><th class="n">現金</th><th class="n">帳面</th><th>結果</th><th></th></tr>'+D.counts.slice().reverse().map(function(c){return'<tr><td>'+E(c.date)+'</td><td>'+E(c.by)+'</td><td class="n">'+M(c.cash)+'</td><td class="n">'+M(c.book)+'</td><td>'+diffTxt(c.cash-c.book)+(c.note?'<br><small>'+E(c.note)+'</small>':'')+'</td><td><button class="b" data-cdel="'+c.id+'">✕</button></td></tr>'}).join("")+'</table>':'<p class="note">還沒有紀錄。</p>')+'</div>'}
-function cCash(){return DEN.reduce(function(s,d){return s+d*N(cnt[d])},0)}
-function cCalc(){DEN.forEach(function(d){var el=document.querySelector('[data-dsum="'+d+'"]');if(el)el.textContent=cnt[d]?"$"+M(d*N(cnt[d])):""});var c=cCash();if($("c_cash"))$("c_cash").textContent="$"+M(c);if($("c_res"))$("c_res").innerHTML=diffTxt(c-book())}
+ '<div class="card"><h3>點鈔紀錄</h3>'+(D.counts.length?'<table class="s"><tr><th>日期</th><th>點鈔人</th><th class="n">實際</th><th class="n">帳面</th><th>結果</th><th></th></tr>'+D.counts.slice().reverse().map(function(c){return'<tr><td>'+E(c.date)+'</td><td>'+E(c.by)+'</td><td class="n">'+M(c.cash)+(c.acc?'<br><small class="note">現金 '+M(c.cash-c.acc)+'＋帳戶 '+M(c.acc)+'</small>':'')+'</td><td class="n">'+M(c.book)+'</td><td>'+diffTxt(c.cash-c.book)+(c.note?'<br><small>'+E(c.note)+'</small>':'')+'</td><td><button class="b" data-cdel="'+c.id+'">✕</button></td></tr>'}).join("")+'</table>':'<p class="note">還沒有紀錄。</p>')+'</div>'}
+function accs(){return D.accts||(D.accts=[{n:"中國信託帳戶",v:""}])}
+function accUI(){return accs().map(function(a,i){return'<div class="row2" style="margin-bottom:6px;grid-template-columns:1.4fr 1fr auto"><input data-accn="'+i+'" value="'+E(a.n)+'" placeholder="帳戶名稱"><input data-accv="'+i+'" type="number" inputmode="numeric" value="'+E(a.v)+'" placeholder="金額"><button class="b" type="button" data-accdel="'+i+'">✕</button></div>'}).join("")}
+function accSum(){return accs().reduce(function(s,a){return s+N(a.v)},0)}
+function boxCash(){return DEN.reduce(function(s,d){return s+d*N(cnt[d])},0)}
+function cCash(){return boxCash()+accSum()}
+function cCalc(){DEN.forEach(function(d){var el=document.querySelector('[data-dsum="'+d+'"]');if(el)el.textContent=cnt[d]?"$"+M(d*N(cnt[d])):""});if($("c_box"))$("c_box").textContent="$"+M(boxCash());if($("c_acc"))$("c_acc").textContent="$"+M(accSum());var c=cCash();if($("c_cash"))$("c_cash").textContent="$"+M(c);if($("c_res"))$("c_res").innerHTML=diffTxt(c-book())}
 
 // 撥補
 function rUI(){var U=unpaid().sort(function(a,b){return(parseInt(a.no,10)||0)-(parseInt(b.no,10)||0)}),s=unpaidSum();
@@ -206,7 +211,9 @@ function shrink(f){return new Promise(function(r){var rd=new FileReader();rd.onl
 // ===== 事件 =====
 document.body.addEventListener("input",function(e){var t=e.target;
  if(t.dataset.i!==undefined&&ed){ed.items[+t.dataset.i][t.dataset.k]=t.value;var k=t.dataset.i,el=document.querySelector('[data-sum="'+k+'"]');if(el)el.textContent="$"+M(N(ed.items[k].p)*N(ed.items[k].q));$("f_tot").textContent="$"+M(tot(ed))}
- else if(t.dataset.den!==undefined){cnt[t.dataset.den]=t.value;cCalc()}});
+ else if(t.dataset.den!==undefined){cnt[t.dataset.den]=t.value;cCalc()}
+ else if(t.dataset.accv!==undefined){accs()[+t.dataset.accv].v=t.value;cCalc()}
+ else if(t.dataset.accn!==undefined){accs()[+t.dataset.accn].n=t.value}});
 document.body.addEventListener("change",async function(e){var t=e.target;
  if(t.id==="mon"){mon=t.value;render()}else if(t.id==="smon"){mon=t.value;render()}else if(t.id==="fs"){fs=t.value;render()}
  else if(t.id==="f_cat"&&ed){var sj=subjOf(t.value);if(sj&&$("f_subj"))$("f_subj").value=sj}
@@ -235,6 +242,7 @@ document.body.addEventListener("click",async function(e){var t=e.target.closest(
  if(t.dataset.pr){var v=D.v.filter(function(x){return x.id===t.dataset.pr})[0];if(v)doPrint(vPage(v));return}
  if(t.dataset.idel!==undefined){readForm();ed.items.splice(+t.dataset.idel,1);itR();$("f_tot").textContent="$"+M(tot(ed));return}
  if(t.dataset.phx!==undefined){e.preventDefault();ed.ph.splice(+t.dataset.phx,1);pv();return}
+ if(t.dataset.accdel!==undefined){accs().splice(+t.dataset.accdel,1);$("accw").innerHTML=accUI();cCalc();return}
  if(t.dataset.cdel){if(!confirm("刪除這筆點鈔紀錄？"))return;D.counts=D.counts.filter(function(c){return c.id!==t.dataset.cdel});save();render();return}
  if(t.dataset.rpr){var r=D.reps.filter(function(x){return x.id===t.dataset.rpr})[0];if(r)doPrint(repPage(r));return}
  if(t.dataset.rdel){var r2=D.reps.filter(function(x){return x.id===t.dataset.rdel})[0];if(!r2||!confirm("取消這次撥補？這 "+r2.ids.length+" 張憑證會變回「未撥補」。"))return;D.v.forEach(function(v){if(v.rep===r2.id)v.rep=null});D.reps=D.reps.filter(function(x){return x.id!==r2.id});save();render();return}
@@ -249,8 +257,9 @@ document.body.addEventListener("click",async function(e){var t=e.target.closest(
  else if(a==="cover"){doPrint(cover(mon||today().slice(0,7)))}
  else if(a==="xl"){exportXl()}
  else if(a==="vimp"){$("vimf").click()}
- else if(a==="csave"){var c=cCash();if(!c&&!confirm("現金是 0 元，確定要記錄嗎？"))return;D.counts.push({id:uid(),date:today(),by:$("c_by").value.trim(),note:$("c_note").value.trim(),cash:c,book:book(),den:JSON.parse(JSON.stringify(cnt))});save();render()}
- else if(a==="cclr"){cnt={};render()}
+ else if(a==="csave"){var c=cCash();if(!c&&!confirm("實際合計是 0 元，確定要記錄嗎？"))return;D.counts.push({id:uid(),date:today(),by:$("c_by").value.trim(),note:$("c_note").value.trim(),cash:c,acc:accSum(),accts:JSON.parse(JSON.stringify(accs())),book:book(),den:JSON.parse(JSON.stringify(cnt))});save();render()}
+ else if(a==="cclr"){cnt={};accs().forEach(function(x){x.v=""});render()}
+ else if(a==="accadd"){accs().push({n:"",v:""});$("accw").innerHTML=accUI();cCalc()}
  else if(a==="rep"){var U=unpaid(),s=unpaidSum();if(!U.length)return;if(!confirm("撥補 $"+M(s)+"（"+U.length+" 張憑證）？"))return;var r3={id:uid(),date:$("r_date").value||today(),amt:s,ids:U.map(function(v){return v.id})};U.forEach(function(v){v.rep=r3.id});D.reps.push(r3);save();render();
   if(confirm("要同時在「本帳」記一筆支出「零用金撥補 $"+M(s)+"」嗎？\n（如果撥補的錢已經在本帳記過，請按取消）")){var L2=LD||{rows:[]};L2.rows=L2.rows||[];L2.rows.push({id:uid(),date:r3.date,item:"零用金撥補",subj:"零用金",inc:"",exp:s,note:"撥補 "+U.length+" 張憑證（#"+U.map(function(v){return v.no}).join("、#")+"）"});LD=L2;SF.set("docs",LKEY,{data:JSON.stringify(L2)})}
   if(confirm("要列印這次的撥補明細嗎？"))doPrint(repPage(r3))}
