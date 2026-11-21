@@ -30,7 +30,7 @@ table.bg input{width:88px;text-align:right;padding:4px 6px}
 </style></head><body>
 <header><a href="index.html">← Sunny Office</a><b>📒 本帳</b></header>
 <main id="app"><p class="note">載入中…</p></main>
-<input type="file" id="imf" accept=".xlsx" hidden>
+<input type="file" id="imf" accept=".xlsx" hidden><input type="file" id="pimf" accept=".xlsx" hidden>
 <script type="module">
 import { SF } from "./cloud.js";
 import { readSheet } from "./xlsximport.js";
@@ -38,7 +38,8 @@ var $=function(i){return document.getElementById(i)},KEY="docs_staff_ledger",PKE
 var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")};
 var N=function(v){v=+v;return isFinite(v)?v:0},M=function(v){return Math.round(N(v)).toLocaleString()};
 var BUDGET_SUBJ=["薪資支出","勞健退","伙食","水費","電費","郵電費","職工福利","教材費","活動費","雜支","暫收付","租金","稅捐","退費","設備-購置","設備-修繕","交際費"];
-var DEF={rows:[],subj:["股金","利息","租金","土地","建築","工程","設備","訂金","零用金"].concat(BUDGET_SUBJ.filter(function(s){return s!=="租金"})),budget:{},bstart:"2026-09",bank:""};
+var DEF={rows:[],subj:["股金","利息","租金","土地","建築","工程","設備","訂金","零用金"].concat(BUDGET_SUBJ.filter(function(s){return s!=="租金"})),budget:{},bstart:"2026-09",bank:"",pay:[]};
+var ped=null,pop="";
 var D=null,P=null,tab="l",ed=null,mon="",fs="",q="";
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
@@ -53,9 +54,9 @@ function months(){var a=[],y=+D.bstart.slice(0,4),m=+D.bstart.slice(5);for(var i
 
 function render(){if(!D)return;var t=tots(),bal=t[0]-t[1],h="";
  h+='<div class="card"><h3>帳戶現況</h3><div class="kv"><span>總收入</span><b class="in">$'+M(t[0])+'</b><span>總支出</span><b class="out">$'+M(t[1])+'</b><span>本帳餘額</span><b class="big">$'+M(bal)+'</b></div>'+
-  '<div class="bar" style="margin:8px 0 0"><span style="font-size:14px">網銀結餘</span><input id="bank" type="number" inputmode="numeric" value="'+E(D.bank)+'" placeholder="輸入網銀或存摺結餘" style="flex:1"><span id="bres">'+bankRes(bal)+'</span></div></div>';
- h+='<div class="tabs">'+[["l","📒 收支表"],["b","📊 預算對照"],["set","⚙️ 設定"]].map(function(x){return'<button class="b'+(tab===x[0]?' on':'')+'" data-tab="'+x[0]+'">'+x[1]+'</button>'}).join("")+'</div>';
- h+=tab==="l"?lUI():tab==="b"?bUI():setUI();$("app").innerHTML=h}
+  (payOut()?'<p style="margin:8px 0 0;font-size:14px">📑 未付尾款 <b class="bad">$'+M(payOut())+'</b>，全部付清後餘額 <b>$'+M(bal-payOut())+'</b></p>':'')+'<div class="bar" style="margin:8px 0 0"><span style="font-size:14px">網銀結餘</span><input id="bank" type="number" inputmode="numeric" value="'+E(D.bank)+'" placeholder="輸入網銀或存摺結餘" style="flex:1"><span id="bres">'+bankRes(bal)+'</span></div></div>';
+ h+='<div class="tabs">'+[["l","📒 收支表"],["p","📑 應付尾款"],["b","📊 預算對照"],["set","⚙️ 設定"]].map(function(x){return'<button class="b'+(tab===x[0]?' on':'')+'" data-tab="'+x[0]+'">'+x[1]+'</button>'}).join("")+'</div>';
+ h+=tab==="l"?lUI():tab==="p"?pUI():tab==="b"?bUI():setUI();$("app").innerHTML=h}
 function bankRes(bal){if(D.bank===""||D.bank==null)return"";var d=N(D.bank)-bal;return d===0?'<span class="ok">✅ 對平</span>':'<span class="bad">差 '+(d>0?"+":"−")+M(Math.abs(d))+'</span>'}
 
 function lUI(){var h="";if(ed)return formUI();
@@ -85,6 +86,31 @@ function bUI(){var ms=months(),A=actual(),S=BUDGET_SUBJ.slice();Object.keys(A).f
  var TB=0,TA=0;h+='<tr><th>本月支出</th>'+ms.map(function(m){TB+=colB[m]||0;TA+=colA[m]||0;return'<th class="n">'+M(colB[m])+'<br><small class="'+(colB[m]&&colA[m]>colB[m]?'bad':'note')+'">實 '+M(colA[m])+'</small></th>'}).join("")+'<th class="n">'+M(TB)+'<br><small>實 '+M(TA)+'</small></th></tr></table></div>';
  return h+'<p class="note">紅字＝實際超過預算。股金、工程、土地、建築等籌備期支出也會列在下方，供參考。</p>'}
 
+// ===== 應付尾款：合約總額 − 收支表中符合關鍵字的付款（扣手續費、加回退款）=====
+function feeOf(r){var m=String(r.note||"").match(/手續費\s*(\d+)/);if(m)return N(m[1]);var x=N(r.exp)%1000;return N(r.exp)>1000&&(x===15||x===30)?x:0}
+function kws(p){return String(p.kw||p.vendor||"").split(/[,，、\s]+/).filter(Boolean)}
+function payRows(p){if(p.nomatch)return[];var K=kws(p);if(!K.length)return[];return sorted().filter(function(r){var t=(r.item||"")+" "+(r.note||"");return K.some(function(k){return t.indexOf(k)>-1})})}
+function paidOf(p){return payRows(p).reduce(function(s,r){return s+(N(r.exp)?N(r.exp)-feeOf(r):0)-N(r.inc)},0)+N(p.adj)}
+function restOf(p){return N(p.total)-paidOf(p)}
+function payOut(){return(D.pay||[]).reduce(function(s,p){var x=restOf(p);return s+(x>0?x:0)},0)}
+function pUI(){D.pay=D.pay||[];var h='<div class="card"><h3>應付尾款</h3><p class="note" style="margin:0 0 6px">輸入合約總額，「已付」會自動加總收支表裡項目或備註含有關鍵字的付款（扣掉手續費、加回退款）。付款時在收支表記一筆，項目寫上廠商名稱就會自動算進去。</p>'+
+ '<div class="kv"><span>未付尾款合計</span><b class="big bad">$'+M(payOut())+'</b></div><div class="bar" style="margin-top:8px"><button class="b bl" data-act="pnew">＋ 新增應付款</button><button class="b" data-act="pimp">📤 從 Excel 工程款支出表匯入</button></div></div>';
+ if(ped)h+='<div class="fm"><b>'+(D.pay.some(function(p){return p.id===ped.id})?"修改":"新增")+'應付款</b><div class="row2"><div><label>廠商</label><input id="p_vendor" value="'+E(ped.vendor)+'"></div><div><label>項目</label><input id="p_item" placeholder="例如 水電工程" value="'+E(ped.item)+'"></div></div><div class="row2"><div><label>合約總額</label><input id="p_total" type="number" inputmode="numeric" value="'+E(ped.total)+'"></div><div><label>預計付款日（選填）</label><input id="p_due" type="date" value="'+E(ped.due)+'"></div></div><label>對應收支表的關鍵字（多個用逗號分開，空白就用廠商名稱）</label><input id="p_kw" placeholder="例如 吉旺,吳宥" value="'+E(ped.kw)+'"><div class="row2"><div><label>已付調整（選填，例如現金付款或收支表以外的付款）</label><input id="p_adj" type="number" inputmode="numeric" value="'+E(ped.adj)+'"></div><div><label>備註</label><input id="p_note" value="'+E(ped.note)+'"></div></div><div class="bar" style="margin-top:10px"><button class="b g" data-act="pok">儲存</button><button class="b" data-act="pno">取消</button>'+(D.pay.some(function(p){return p.id===ped.id})?'<button class="b" data-act="pdel" style="margin-left:auto">刪除</button>':'')+'</div></div>';
+ var P=D.pay.slice().sort(function(a,b){return(restOf(a)<=0)-(restOf(b)<=0)||restOf(b)-restOf(a)});
+ h+=P.map(function(p){var rest=restOf(p),R=payRows(p),done=rest<=0;return'<div class="it"><div class="t"><b>'+E(p.vendor)+(p.item?'　'+E(p.item):'')+'</b><span class="amt'+(done?'" style="color:#3f8a5c':'')+'">'+(done?'✅ 已付清':'尾款 $'+M(rest))+'</span></div><small>合約 $'+M(p.total)+' ・ 已付 $'+M(paidOf(p))+'（'+R.length+' 筆'+(N(p.adj)?'，含調整 '+M(p.adj):'')+'）'+(p.due?' ・ 預計 '+E(p.due):'')+(p.note?' ・ '+E(p.note):'')+'</small>'+
+  (pop===p.id?'<table class="s" style="margin-top:6px"><tr><th>日期</th><th>項目</th><th class="n">付款</th><th class="n">手續費</th><th class="n">退款</th></tr>'+R.map(function(r){return'<tr><td>'+roc(r.date)+'</td><td class="w">'+E(r.item)+(r.note?'<br><small class="note">'+E(r.note)+'</small>':'')+'</td><td class="n">'+(N(r.exp)?M(r.exp):"")+'</td><td class="n">'+(feeOf(r)?M(feeOf(r)):"")+'</td><td class="n in">'+(N(r.inc)?M(r.inc):"")+'</td></tr>'}).join("")+'</table>':'')+
+  '<div class="bar" style="margin:6px 0 0">'+(done?'':'<button class="b bl" data-ppay="'+p.id+'">💸 記一筆付款</button>')+'<button class="b" data-pop="'+p.id+'">'+(pop===p.id?'收起明細':'付款明細')+'</button><button class="b" data-ped="'+p.id+'">編輯</button></div></div>'}).join("")||'<p class="note" style="text-align:center">還沒有應付款。</p>';
+ return h}
+async function importPay(f){var sh=await readSheet(f,/工程款/),R=sh.rows,out=[];
+ if(!/工程款/.test(sh.name)){alert("找不到「工程款支出表」工作表");return}
+ for(var r=1;r<R.length;r++){var x=R[r]||[],name=x[0],tot=x[1],paidT=N(x[2]);if(typeof name!=="string"||typeof tot!=="number"||!name.trim())continue;
+  var kw=name.trim().replace(/(股份有限公司|有限公司|公司|營造|工程)$/,"")||name.trim(),p0={id:uid(),vendor:name.trim(),item:"",total:tot,kw:kw,adj:"",due:"",note:""};
+  if(paidT>=tot){p0.nomatch=true;p0.adj=paidT;p0.note="工程款支出表標示已付清"}
+  else{var m=paidOf(p0);if(paidT>m){p0.adj=paidT-m;p0.note="工程款支出表已匯 "+M(paidT)+"，其中 "+M(paidT-m)+" 不在收支表"}}out.push(p0)}
+ var have={};(D.pay||[]).forEach(function(p){have[p.vendor]=1});var nw=out.filter(function(p){return!have[p.vendor]});
+ if(!nw.length){alert("檔案裡的 "+out.length+" 項都已經在應付尾款裡了");return}
+ if(!confirm("要匯入 "+nw.length+" 項嗎？\n"+nw.map(function(p){return p.vendor+" $"+M(p.total)}).join("\n")+"\n\n匯入後請檢查每一項的關鍵字是否能對到收支表的付款。"))return;
+ D.pay=(D.pay||[]).concat(nw);save();render()}
 function setUI(){return'<div class="card"><h3>科目（一行一個）</h3><textarea id="s_subj" rows="14" style="width:100%">'+E(D.subj.join("\n"))+'</textarea><div class="bar" style="margin-top:8px"><button class="b g" data-act="sset">儲存</button></div></div>'}
 
 // 匯入：本帳 Excel 的「收支表」工作表（序、日期、項目、科目、收入、支出、備註）
@@ -120,12 +146,22 @@ document.body.addEventListener("change",async function(e){var t=e.target;
  else if(t.id==="bank"){D.bank=t.value;save();render()}
  else if(t.id==="bstart"){D.bstart=t.value||D.bstart;save();render()}
  else if(t.dataset.bs){var s=t.dataset.bs;D.budget[s]=D.budget[s]||{};D.budget[s][t.dataset.bm]=t.value;save();render()}
+ else if(t.id==="pimf"){var f2=t.files[0];t.value="";if(f2){try{await importPay(f2)}catch(x){console.error(x);alert("無法讀取這個檔案："+(x.message||x))}}}
  else if(t.id==="imf"){var f=t.files[0];t.value="";if(f){try{await importXl(f)}catch(x){console.error(x);alert("無法讀取這個檔案："+(x.message||x))}}}});
 document.body.addEventListener("input",function(e){if(e.target.id==="q"){q=e.target.value;var p=e.target.selectionStart;render();var n=$("q");n.focus();n.setSelectionRange(p,p)}
  else if(e.target.id==="bank"){var t=tots();$("bres").innerHTML=(D.bank=e.target.value,bankRes(t[0]-t[1]))}});
 document.body.addEventListener("click",function(e){var t=e.target.closest("button,tr.e");if(!t)return;var a=t.dataset.act;
- if(t.dataset.tab){tab=t.dataset.tab;ed=null;render();return}
+ if(t.dataset.tab){tab=t.dataset.tab;ed=null;ped=null;render();return}
  if(t.dataset.ed){ed=JSON.parse(JSON.stringify(D.rows.filter(function(r){return r.id===t.dataset.ed})[0]));render();return}
+ if(t.dataset.ped){ped=JSON.parse(JSON.stringify(D.pay.filter(function(p){return p.id===t.dataset.ped})[0]));render();return}
+ if(t.dataset.pop){pop=pop===t.dataset.pop?"":t.dataset.pop;render();return}
+ if(t.dataset.ppay){var pp=D.pay.filter(function(p){return p.id===t.dataset.ppay})[0];tab="l";ed={id:uid(),date:today(),item:pp.vendor+(pp.item?" "+pp.item:"")+" 尾款",subj:D.subj.indexOf("工程")>-1?"工程":D.subj[0],inc:"",exp:String(restOf(pp)),note:"含手續費請加在金額並在備註寫「手續費XX」"};render();return}
+ if(a==="pnew"){ped={id:uid(),vendor:"",item:"",total:"",kw:"",adj:"",due:"",note:""};render();return}
+ if(a==="pno"){ped=null;render();return}
+ if(a==="pok"){var okw=ped.kw;["vendor","item","total","kw","adj","due","note"].forEach(function(k){ped[k]=$("p_"+k).value.trim()});if(ped.kw!==okw)delete ped.nomatch;if(!ped.vendor||!N(ped.total)){alert("請填廠商和合約總額");return}ped.total=N(ped.total);
+  D.pay=D.pay||[];var ix=D.pay.map(function(p){return p.id}).indexOf(ped.id);if(ix>-1)D.pay[ix]=ped;else D.pay.push(ped);ped=null;save();render();return}
+ if(a==="pdel"){if(!confirm("刪除這筆應付款？（收支表的付款不會被刪）"))return;D.pay=D.pay.filter(function(p){return p.id!==ped.id});ped=null;save();render();return}
+ if(a==="pimp"){$("pimf").click();return}
  if(a==="new"){ed={id:uid(),date:today(),item:"",subj:fs||D.subj[0],inc:"",exp:"",note:""};render()}
  else if(a==="no"){ed=null;render()}
  else if(a==="ok"){["date","item","subj","inc","exp","note"].forEach(function(k){ed[k]=$("f_"+k).value.trim()});if(!ed.date||!ed.item){alert("請填日期和項目");return}if(!N(ed.inc)&&!N(ed.exp)){alert("請填收入或支出");return}
