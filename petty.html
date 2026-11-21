@@ -298,21 +298,26 @@ async function importV(f){var sh=await readSheet(f,/憑證|零用金/),R=sh.rows
  R[hr].forEach(function(v,c){if(v)col[String(v).trim()]=c});
  // 零用金收支表格式（序、日期、項目、科目、收入、支出、備註）：只取「支出」欄，收入由本帳「零用金」計算
  var ledgerFmt=col["金額"]==null&&col["支出"]!=null;if(ledgerFmt){col["金額"]=col["支出"];if(col["用途類別"]==null)col["用途類別"]=col["項目"]}
- var advNew=[];if(ledgerFmt&&col["收入"]!=null){for(var j=hr+1;j<R.length;j++){var y=R[j]||[],dd=isoD(y[col["日期"]]),inc=N(y[col["收入"]]),it2=String(y[col["項目"]]||""),sj2=String(y[col["科目"]]||"");
+ // 「代墊序」欄：支出列填對應代墊款那一列的「序」，匯入時自動連結（已匯入過的也會補上連結）
+ var kc=col["代墊序"],sc=col["序"],key=function(v){return String(v==null?"":v).trim()},advKey={};
+ var advNew=[];if(ledgerFmt&&col["收入"]!=null){var hv={};advAll().forEach(function(a){hv[a.date+"|"+N(a.amt)+"|"+a.item]=a});
+  for(var j=hr+1;j<R.length;j++){var y=R[j]||[],dd=isoD(y[col["日期"]]),inc=N(y[col["收入"]]),it2=String(y[col["項目"]]||""),sj2=String(y[col["科目"]]||"");
   if(!dd||!inc||(sj2.indexOf("代墊")<0&&it2.indexOf("代墊")<0))continue;var who=(it2.match(/^(.+?)信用卡墊付/)||it2.match(/(父親|爸爸|母親|媽媽)/)||[])[1]||"";
-  advNew.push({id:uid(),date:dd,who:who==="父親"?"爸爸":who,item:it2.replace(/（待還）/,""),amt:inc,how:it2.indexOf("信用卡")>-1?"信用卡":"",note:String(y[col["備註"]]||"").trim(),st:"待還"})}
-  var hv={};advAll().forEach(function(a){hv[a.date+"|"+N(a.amt)+"|"+a.item]=1});advNew=advNew.filter(function(a){return!hv[a.date+"|"+N(a.amt)+"|"+a.item]})}
+  var na={id:uid(),date:dd,who:who==="父親"?"爸爸":who,item:it2.replace(/（待還）/,""),amt:inc,how:it2.indexOf("信用卡")>-1?"信用卡":"",note:String(y[col["備註"]]||"").trim(),st:"待還"},old=hv[na.date+"|"+N(na.amt)+"|"+na.item];
+  if(!old)advNew.push(na);if(sc!=null&&key(y[sc]))advKey[key(y[sc])]=(old||na).id}}
  var out=[];for(var i=hr+1;i<R.length;i++){var x=R[i]||[],d=isoD(x[col["日期"]]),amt=N(x[col["金額"]]);if(!d||!amt)continue;
   var cat=String(x[col["用途類別"]]||"").trim(),it=String(x[col["項目"]]||cat).trim();
-  out.push({id:uid(),no:"",date:d,cat:cat,subj:String(x[col["科目"]]||"").trim()||subjOf(cat)||"",items:[{n:it,p:String(amt),q:"1",note:""}],payee:String(x[col["領款人"]]||"").trim()||((String(x[col["備註"]]||"").match(/領款人\s*([^；;]+)/)||[])[1]||"").trim(),note:String(x[col["備註"]]||"").trim(),rep:null})}
+  out.push({id:uid(),no:"",date:d,cat:cat,subj:String(x[col["科目"]]||"").trim()||subjOf(cat)||"",items:[{n:it,p:String(amt),q:"1",note:""}],payee:String(x[col["領款人"]]||"").trim()||((String(x[col["備註"]]||"").match(/領款人\s*([^；;]+)/)||[])[1]||"").trim(),note:String(x[col["備註"]]||"").trim(),rep:null,_k:kc!=null?key(x[kc]):""})}
  if(!out.length&&!advNew.length){alert("沒有讀到資料");return}
- var sig=function(v){return v.date+"|"+tot(v)+"|"+v.items.map(function(i){return i.n}).join("、")},have={};D.v.forEach(function(v){have[sig(v)]=1});
+ var sig=function(v){return v.date+"|"+tot(v)+"|"+v.items.map(function(i){return i.n}).join("、")},have={};D.v.forEach(function(v){have[sig(v)]=v});
  var nw=out.filter(function(v){return!have[sig(v)]}),sum=nw.reduce(function(s,v){return s+tot(v)},0);
- if(!nw.length&&!advNew.length){alert("檔案裡的 "+out.length+" 張都已經登記過了");return}
- if(!confirm("要匯入 "+nw.length+" 張憑證嗎？合計 $"+M(sum)+(advNew.length?"\n另有代墊款 "+advNew.length+" 筆，合計 $"+M(advNew.reduce(function(s,a){return s+a.amt},0)):"")+(out.length>nw.length?"\n（另有 "+(out.length-nw.length)+" 張已存在，略過）":"")))return;
- D.adv=advAll().concat(advNew);
+ var links=[];out.forEach(function(v){var aid=v._k&&advKey[v._k];if(!aid)return;var tgt=have[sig(v)]||v;if(tgt.aid!==aid)links.push([tgt,aid])});
+ if(!nw.length&&!advNew.length&&!links.length){alert("檔案裡的 "+out.length+" 張都已經登記過了");return}
+ if(!confirm((nw.length?"要匯入 "+nw.length+" 張憑證嗎？合計 $"+M(sum):"憑證都已經登記過了")+(advNew.length?"\n另有代墊款 "+advNew.length+" 筆，合計 $"+M(advNew.reduce(function(s,a){return s+a.amt},0)):"")+(links.length?"\n要把 "+links.length+" 張憑證連結到對應的代墊款":"")+(nw.length&&out.length>nw.length?"\n（另有 "+(out.length-nw.length)+" 張已存在，略過）":"")))return;
+ D.adv=advAll().concat(advNew);links.forEach(function(l){l[0].aid=l[1]});
+ out.forEach(function(v){delete v._k});
  nw.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});var n=nextNo();nw.forEach(function(v){v.no=String(n++);v.nph=0;if(v.subj&&D.subj.indexOf(v.subj)<0)D.subj.push(v.subj);if(v.cat&&!D.cats.some(function(c){return c[0]===v.cat}))D.cats.push([v.cat,v.subj])});
- D.v=D.v.concat(nw);save();render();alert("已匯入 "+nw.length+" 張"+(advNew.length?"、代墊款 "+advNew.length+" 筆":""))}
+ D.v=D.v.concat(nw);save();render();alert((nw.length?"已匯入 "+nw.length+" 張":"完成")+(advNew.length?"、代墊款 "+advNew.length+" 筆":"")+(links.length?"、連結 "+links.length+" 張憑證到代墊款":""))}
 document.body.insertAdjacentHTML("beforeend",'<input type="file" id="vimf" accept=".xlsx" hidden>');
 $("vimf").addEventListener("change",async function(){var f=this.files[0];this.value="";if(!f)return;try{await importV(f)}catch(x){console.error(x);alert("無法讀取這個檔案："+(x.message||x))}});
 </script>
