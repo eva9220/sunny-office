@@ -51,6 +51,6 @@ var L=[["QUOTES","廠商報價","裝潢・招牌・廚具・地墊・書包・�
 ["CONTRACT","定型化契約","契約資料整理・附件檢核","docs.html?m=contract","paper","#d3b896","#f3eadc"],
 ["EVALUATION","評鑑自我檢核","28 項指標・官方表格・後續追蹤","eval.html","check","#b9a2d6","#ece4f5"],
 ["CHECKLIST","會計清單","待辦事項・每月結帳步驟","checklist.html","✅","#8aa36b","#e6efd9"],
-["ACCOUNTING","記帳","銀行本帳・零用金，點下面選一個",[["📒","本帳","銀行收支・提領・應付尾款","ledger.html"],["💰","零用金","憑證・代墊款・點鈔對帳","petty.html"]],"🧾","#d9b46a","#f8eed6"]];
+["ACCOUNTING","記帳","零用金・代墊款・本帳・應付尾款，同一頁切換","books.html","🧾","#d9b46a","#f8eed6"]];
 document.getElementById("g").innerHTML=L.map(function(l){var h=l[3];if(Array.isArray(h))return'<div class="card grp" style="--k:'+l[5]+';--bg2:'+l[6]+'"><div class="hd"><div class="ic">'+(IC[l[4]]||l[4])+'</div><div class="tx"><small>'+l[0]+'</small><b>'+l[1]+'</b><span>'+l[2]+'</span></div></div><div class="subs">'+h.map(function(x){return'<a href="'+x[3]+'"><i>'+x[0]+'</i><span><b>'+x[1]+'</b><small>'+x[2]+'</small></span></a>'}).join("")+'</div></div>';return'<'+(h?'a href="'+h+'"':'div')+' class="card'+(h?'':' soon')+'" style="--k:'+l[5]+';--bg2:'+l[6]+'"><div class="ic">'+(IC[l[4]]||l[4])+'</div><div class="tx"><small>'+l[0]+'</small><b>'+l[1]+'</b><span>'+l[2]+'</span>'+(h?'':'<span class="bd">即將推出</span>')+'</div>'+(h?'<div class="ar">›</div>':'')+'</'+(h?'a':'div')+'>'}).join("")
 </script><script type="module">import { SF } from "./cloud.js"; SF.gate(function(){});</script></body></html>

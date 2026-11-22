@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>記帳｜Sunny Office</title>
+<style>
+:root{--bg:#fbf6ef;--ink:#4d4a47;--sub:#8c857d;--line:#eadfd2;--l:#7f9cc0;--p:#c9a35c;color-scheme:light}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;display:flex;flex-direction:column;height:100dvh}
+header{background:#a99060;color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;display:flex;align-items:center;gap:10px;flex:none}
+header a{color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:10px;padding:4px 12px;text-decoration:none;font-size:14px}
+header b{font-size:18px}
+nav{flex:none;background:#fffdf9;border-bottom:1px solid var(--line);padding:8px 10px 6px}
+.grp{display:flex;align-items:center;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}
+.grp::-webkit-scrollbar{display:none}
+.grp>span{flex:none;font-size:12px;font-weight:800;letter-spacing:.06em;padding:3px 8px;border-radius:8px;color:#fff}
+.t{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer;white-space:nowrap}
+.t.on{color:#fff}
+.t.l.on{background:var(--l);border-color:var(--l)}
+.t.p.on{background:var(--p);border-color:var(--p)}
+.wrap{flex:1;position:relative;min-height:0}
+iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg)}
+iframe[hidden]{display:none}
+.msg{padding:20px;text-align:center;color:var(--sub)}
+</style></head><body>
+<header><a href="index.html">← Sunny Office</a><b>🧾 記帳</b><a id="solo" href="petty.html" style="margin-left:auto;font-size:12px" title="列印不正常時用">↗ 單獨開啟</a></header>
+<nav id="nav"></nav>
+<div class="wrap" id="wrap"><p class="msg">載入中…</p></div>
+<script type="module">
+import { SF } from "./cloud.js";
+// [頁面, 分頁代號, 名稱]
+var T=[["l","l","📒 收支表"],["l","p","📑 應付尾款"],["l","b","📊 預算對照"],
+ ["p","v","🧾 憑證"],["p","adv","🤝 代墊款"],["p","in","💵 撥入紀錄"],["p","c","🪙 點鈔對帳"],["p","s","📊 月統計"],
+ ["p","set","⚙️ 設定"],["l","set","⚙️ 設定"]];
+var SRC={l:"ledger.html",p:"petty.html"},F={},cur=null;
+function load(){try{return JSON.parse(localStorage.getItem("books_tab")||"null")}catch(e){return null}}
+function keep(k){try{localStorage.setItem("books_tab",JSON.stringify(k))}catch(e){}}
+function nav(){var g=function(pg,lab,col){return'<div class="grp"><span style="background:'+col+'">'+lab+'</span>'+T.filter(function(t){return t[0]===pg}).map(btn).join("")+'</div>'};
+ function btn(t){var on=cur&&cur[0]===t[0]&&cur[1]===t[1];return'<button class="t '+t[0]+(on?' on':'')+'" data-pg="'+t[0]+'" data-tb="'+t[1]+'">'+t[2]+'</button>'}
+ document.getElementById("nav").innerHTML=g("p","零用金","var(--p)")+g("l","本帳","var(--l)")}
+function show(pg,tb){cur=[pg,tb];keep(cur);nav();document.getElementById("solo").href=SRC[pg]+"?tab="+tb;var w=document.getElementById("wrap");
+ Object.keys(F).forEach(function(k){F[k].hidden=k!==pg});
+ if(!F[pg]){var f=document.createElement("iframe");f.title=pg==="l"?"本帳":"零用金";f.src=SRC[pg]+"?embed=1&tab="+tb;F[pg]=f;var m=w.querySelector(".msg");if(m)m.remove();w.appendChild(f)}
+ else F[pg].contentWindow.postMessage({tab:tb},location.origin)}
+document.getElementById("nav").addEventListener("click",function(e){var b=e.target.closest("button[data-pg]");if(b)show(b.dataset.pg,b.dataset.tb)});
+// 內頁的連結（例如「前往本帳」）改成在這裡切換
+window.addEventListener("message",function(e){if(e.origin!==location.origin)return;var h=(e.data||{}).go||"";
+ if(/^ledger/.test(h))show("l","l");else if(/^petty/.test(h))show("p","v");else if(/^index/.test(h))location.href="index.html"});
+SF.gate(function(){var k=load();if(!k||!T.some(function(t){return t[0]===k[0]&&t[1]===k[1]}))k=["p","v"];show(k[0],k[1])});
+</script>
+</body></html>
