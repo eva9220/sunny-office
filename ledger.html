@@ -5,6 +5,7 @@
 <style>
 :root{--bg:#fbf6ef;--ink:#4d4a47;--sub:#8c857d;--g:#86ab98;--p:#dc8f80;--line:#eadfd2;color-scheme:light}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding-bottom:env(safe-area-inset-bottom,0px)}
+.emb header,.emb .tabs{display:none!important}.emb main{padding-top:10px}
 header{background:#7f9cc0;color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 12px;display:flex;align-items:center;gap:10px}
 header a{color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:10px;padding:4px 12px;text-decoration:none;font-size:14px}header b{font-size:18px}
 main{max-width:860px;margin:0 auto;padding:14px}
@@ -190,6 +191,11 @@ document.body.addEventListener("click",function(e){var t=e.target.closest("butto
  else if(a==="xl"){exportXl()}
  else if(a==="sset"){var S=[];$("s_subj").value.split(/\n/).forEach(function(l){l=l.trim();if(l&&S.indexOf(l)<0)S.push(l)});if(!S.length)return;D.subj=S;save();alert("已儲存");render()}});
 
+// 嵌在「記帳」頁（books.html）裡時：隱藏標題列和分頁，由外層切換分頁
+var EMB=/[?&]embed=1/.test(location.search);(function(){var m=location.search.match(/[?&]tab=(\w+)/);if(m)tab=m[1]})();
+if(EMB){document.documentElement.classList.add("emb");
+ window.addEventListener("message",function(e){if(e.origin!==location.origin)return;var d=e.data||{};if(!d.tab)return;var b=document.querySelector('[data-tab="'+d.tab+'"]');if(b)b.click();else tab=d.tab;window.scrollTo(0,0)});
+ document.addEventListener("click",function(e){var a=e.target.closest("a[href]");if(!a)return;var h=a.getAttribute("href")||"";if(/^(index|ledger|petty)\.html/.test(h)){e.preventDefault();parent.postMessage({go:h},location.origin)}},true)}
 SF.gate(function(){
  SF.watchDoc("docs",KEY,function(d,local){if(local)return;var x=null;try{x=d&&d.data?JSON.parse(d.data):null}catch(e){}D=Object.assign(JSON.parse(JSON.stringify(DEF)),x||{});if(!ed)render()},
   function(e){if(e&&e.code==="permission-denied")$("app").innerHTML='<div class="card"><h3>沒有權限</h3><p>本帳只限管理者與主管查看。</p></div>'});

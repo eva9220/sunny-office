@@ -5,6 +5,7 @@
 <style>
 :root{--bg:#fbf6ef;--ink:#4d4a47;--sub:#8c857d;--g:#86ab98;--p:#dc8f80;--y:#e6c16a;--line:#eadfd2;color-scheme:light}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding-bottom:env(safe-area-inset-bottom,0px)}
+.emb header,.emb .tabs{display:none!important}.emb main{padding-top:10px}
 header{background:#c9a35c;color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 12px;display:flex;align-items:center;gap:10px}
 header a{color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:10px;padding:4px 12px;text-decoration:none;font-size:14px}header b{font-size:18px}
 main{max-width:720px;margin:0 auto;padding:14px}
@@ -347,6 +348,11 @@ document.body.addEventListener("click",async function(e){var t=e.target.closest(
  else if(a==="sset"){D.mode=$("s_mode").value;var q=N($("s_quota").value),S=[];$("s_subj").value.split(/\n/).forEach(function(l){l=l.trim();if(l&&S.indexOf(l)<0)S.push(l)});var C=[];$("s_cats").value.split(/\n/).forEach(function(l){var m=l.split(/[＝=]/);var n=(m[0]||"").trim(),sj=(m[1]||"").trim();if(n&&!C.some(function(c){return c[0]===n})){C.push([n,sj]);if(sj&&S.indexOf(sj)<0)S.push(sj)}});if(q<=0){alert("定額要大於 0");return}if(!S.length){alert("至少要有一個科目");return}if(!C.length){alert("至少要有一個用途類別");return}D.quota=q;D.subj=S;D.cats=C;save();alert("已儲存");render()}
 });
 
+// 嵌在「記帳」頁（books.html）裡時：隱藏標題列和分頁，由外層切換分頁
+var EMB=/[?&]embed=1/.test(location.search);(function(){var m=location.search.match(/[?&]tab=(\w+)/);if(m)tab=m[1]})();
+if(EMB){document.documentElement.classList.add("emb");
+ window.addEventListener("message",function(e){if(e.origin!==location.origin)return;var d=e.data||{};if(!d.tab)return;var b=document.querySelector('[data-tab="'+d.tab+'"]');if(b)b.click();else tab=d.tab;window.scrollTo(0,0)});
+ document.addEventListener("click",function(e){var a=e.target.closest("a[href]");if(!a)return;var h=a.getAttribute("href")||"";if(/^(index|ledger|petty)\.html/.test(h)){e.preventDefault();parent.postMessage({go:h},location.origin)}},true)}
 SF.gate(function(){
  SF.watchDoc("docs",LKEY,function(d){try{LD=d&&d.data?JSON.parse(d.data):null}catch(e){LD=null}if(D&&!ed)render()},function(){});
  SF.watchDoc("docs",KEY,function(d,local){if(local)return;var x=null;try{x=d&&d.data?JSON.parse(d.data):null}catch(e){}D=Object.assign(JSON.parse(JSON.stringify(DEF)),x||{});(D.adv||[]).forEach(function(a){if(a.vid){D.v.forEach(function(v){if(v.id===a.vid)v.aid=a.id});delete a.vid}});if(JSON.stringify(D.subj)===OLD_SUBJ){var map={"業務費":null,"人事費":"薪資支出","雜支":null};D.subj=DEF.subj.slice();D.cats=DEF.cats.slice();D.v.forEach(function(v){var s=subjOf(v.cat);if(s)v.subj=s;else if(map[v.subj])v.subj=map[v.subj]});save()}if(!ed)render()},
