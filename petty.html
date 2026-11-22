@@ -22,10 +22,10 @@ input[type=date],input[type=month]{-webkit-appearance:none;appearance:none;min-h
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 12px}
 .it{background:#fffdf9;border-radius:18px;padding:10px 14px;margin-bottom:10px;box-shadow:0 3px 0 var(--line)}
 .it .t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.it .t b{font-size:16px}
-.it small{color:var(--sub)}.pk{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:12px;margin:8px 0;padding:2px 8px;background:#fff}.pk label{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14px}.pk label:last-child{border-bottom:0}.pk input{width:20px;height:20px;flex:0 0 20px}.pk .a{margin-left:auto;font-weight:700;white-space:nowrap}.amt{color:var(--p);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.it small{color:var(--sub)}.qk{background:#fffdf9;border-radius:20px;padding:12px 14px;margin-bottom:12px;box-shadow:0 4px 0 var(--line)}.qk h3{margin:0 0 8px;font-size:17px}.qk .r{display:flex;gap:8px;margin-bottom:8px}.qk .r>*{min-width:0}.qk #qa{flex:0 0 38%;font-size:22px;font-weight:700}.qk #qn{flex:1}.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}.chip.on{background:var(--g);border-color:var(--g);color:#fff}.qk .ft{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.qk .ok{color:#3f8a5c;font-size:14px;margin:8px 0 0}.pk{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:12px;margin:8px 0;padding:2px 8px;background:#fff}.pk label{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14px}.pk label:last-child{border-bottom:0}.pk input{width:20px;height:20px;flex:0 0 20px}.pk .a{margin-left:auto;font-weight:700;white-space:nowrap}.amt{color:var(--p);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
 .st{display:inline-block;border-radius:999px;padding:0 9px;font-size:12px;margin-right:6px}.st.u{background:#fbe9c8}.st.r{background:#e2f0e6}
 .fm{background:#fffdf9;border:2px dashed #c9a35c;border-radius:20px;padding:12px;margin-bottom:12px}
-.fm label{display:block;font-size:13px;color:var(--sub);margin:6px 0 2px}.fm input,.fm select,.fm textarea{width:100%}
+.fm label{display:block;font-size:13px;color:var(--sub);margin:6px 0 2px}.fm input,.fm select,.fm textarea{width:100%}select.chip{width:auto;max-width:8.5em}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ir{border:1.5px dashed var(--line);border-radius:14px;padding:8px;margin:6px 0;display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px}
 .ir .w{grid-column:1/-1}.ir .bt{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:14px}
@@ -71,7 +71,7 @@ var DEN=[1000,500,200,100,50,10,5,1];
 var DEF={adv:[],mode:"ledger",quota:20000,subj:["薪資支出","勞健退","伙食","水費","電費","郵電費","職工福利","教材費","活動費","雜支","暫收付","租金","稅捐","退費","設備-購置","設備-修繕","交際費"],cats:[["臺電","電費"],["水費","水費"],["文具","雜支"],["清潔","雜支"],["教具採買","教材費"],["老師時薪費用","薪資支出"],["交際費","交際費"]],v:[],reps:[],counts:[]};
 var OLD_SUBJ='["人事費","業務費","設備費","雜支"]',LKEY="docs_staff_ledger",LD=null;
 function subjOf(c){var m=D.cats.filter(function(x){return x[0]===c})[0];return m?m[1]:""}
-var D=null,tab="v",ed=null,cur=null,mon="",fs="",q="",cnt={};
+var D=null,tab="v",ed=null,cur=null,mon="",fs="",q="",cnt={},qk=null,qmsg="";
 // 關鍵字搜尋：編號（#12 或 12）、項目、用途、科目、領款人、備註、金額
 function hit(v,k){k=String(k||"").trim().toLowerCase();if(!k)return true;return k.split(/\s+/).every(function(w){var n=w.replace(/^#/,"");if(/^#/.test(w))return String(v.no)===n;var t=[v.no,v.date,v.cat,v.subj,v.payee,v.note,tot(v),M(tot(v))].concat(v.items.map(function(i){return i.n+" "+(i.note||"")})).join(" ").toLowerCase();return String(v.no)===n||t.indexOf(w)>-1})}
 function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
@@ -113,12 +113,25 @@ function diffTxt(d){return d===0?'<span class="ok">✅ 持平</span>':d<0?'<span
 // 憑證
 function vUI(){var h="";
  if(ed)return formUI();
- h+='<div class="bar"><button class="b y" data-act="new">＋ 新增憑證</button><input type="month" id="mon" value="'+mon+'"><select id="fs"><option value="">全部用途類別</option>'+D.cats.map(function(c){return'<option'+(c[0]===fs?' selected':'')+'>'+E(c[0])+'</option>'}).join("")+'</select></div><input type="search" id="q" value="'+E(q)+'" placeholder="🔍 搜尋編號、項目、領款人、金額…（#12 只找編號 12）" style="width:100%;margin-bottom:8px">';
+ h+=quickUI();
+ h+='<div class="bar"><button class="b y" data-act="new">＋ 詳細新增（多項明細）</button><input type="month" id="mon" value="'+mon+'"><select id="fs"><option value="">全部用途類別</option>'+D.cats.map(function(c){return'<option'+(c[0]===fs?' selected':'')+'>'+E(c[0])+'</option>'}).join("")+'</select></div><input type="search" id="q" value="'+E(q)+'" placeholder="🔍 搜尋編號、項目、領款人、金額…（#12 只找編號 12）" style="width:100%;margin-bottom:8px">';
  var L=D.v.filter(function(v){return(!mon||String(v.date).slice(0,7)===mon)&&(!fs||v.cat===fs)&&hit(v,q)}).sort(function(a,b){return(parseInt(b.no,10)||0)-(parseInt(a.no,10)||0)});
  h+='<p class="note">共 '+L.length+' 張，合計 $'+M(L.reduce(function(s,v){return s+tot(v)},0))+'</p>';
  h+=L.map(function(v){return'<div class="it"><div class="t"><b>#'+E(v.no)+' '+E(v.cat||"（未選用途）")+'</b><span class="amt">$'+M(tot(v))+'</span></div><small>'+(LM()?'':'<span class="st '+(v.rep?'r">已撥補':'u">未撥補')+'</span>')+E(v.date)+(v.subj?' ・ '+E(v.subj):'')+(v.payee?' ・ 領款人 '+E(v.payee):'')+(v.nph?' ・ 📎'+v.nph:'')+advTag(v)+'</small><div style="font-size:14px">'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</div><div class="bar" style="margin:6px 0 0"><button class="b" data-ed="'+v.id+'">編輯</button><button class="b" data-pr="'+v.id+'">🖨️ 列印支出表</button>'+(advOf(v)?'':'<button class="b" data-toadv="'+v.id+'">🤝 別人先付（記代墊款）</button>')+'</div></div>'}).join("")||'<p class="note" style="text-align:center">這個條件下沒有憑證。</p>';
  h+='<div class="bar" style="margin-top:6px"><button class="b" data-act="prm">🖨️ 列印本月全部支出表</button><button class="b" data-act="cover">🖨️ 列印封面</button><button class="b" data-act="xl">📥 匯出 Excel</button><button class="b" data-act="vimp">📤 匯入憑證 Excel</button><button class="b" data-act="renum">🔢 重新編號</button></div>';
  return h}
+// ===== 快速記一筆：金額＋項目，點常用項目自動帶用途類別和科目 =====
+function qkNew(){return{date:today(),n:"",amt:"",cat:"",ph:[]}}
+function freq(){var c={},last={};D.v.forEach(function(v){var n=(v.items[0]&&v.items[0].n||"").trim();if(!n||n.length>6)return;c[n]=(c[n]||0)+1;if(!last[n]||v.date>=last[n].date)last[n]=v});
+ return Object.keys(c).sort(function(a,b){return c[b]-c[a]||(last[b].date>last[a].date?1:-1)}).slice(0,8).map(function(n){return{n:n,cat:last[n].cat,subj:last[n].subj}})}
+function guessCat(n){n=String(n||"").trim();if(!n)return"";var L=D.v.filter(function(v){return(v.items[0]&&v.items[0].n||"").trim()===n}).sort(function(a,b){return a.date<b.date?1:-1});if(L[0])return L[0].cat;var c=D.cats.filter(function(c){return n.indexOf(c[0])>-1||c[0].indexOf(n)>-1})[0];return c?c[0]:""}
+function topCats(){var c={};D.v.forEach(function(v){if(v.cat)c[v.cat]=(c[v.cat]||0)+1});return Object.keys(c).sort(function(a,b){return c[b]-c[a]}).filter(function(c){return c.length<=6}).slice(0,6)}
+function quickUI(){if(!qk)qk=qkNew();var F=freq(),TC=topCats(),cat=qk.cat||guessCat(qk.n);
+ return'<div class="qk"><h3>⚡ 快速記一筆</h3><div class="r"><input id="qa" type="number" inputmode="numeric" placeholder="金額" value="'+E(qk.amt)+'"><input id="qn" list="dl_qn" placeholder="買了什麼（例如 便當）" value="'+E(qk.n)+'"><datalist id="dl_qn">'+F.map(function(f){return'<option value="'+E(f.n)+'">'}).join("")+'</datalist></div>'+
+ (F.length?'<div class="note" style="margin:-2px 0 4px">常用</div><div class="chips">'+F.map(function(f){return'<button class="chip'+(qk.n===f.n?' on':'')+'" data-qn="'+E(f.n)+'">'+E(f.n)+'</button>'}).join("")+'</div>':'')+
+ '<div class="note" style="margin:-2px 0 4px">用途類別'+(cat?'：<b>'+E(cat)+'</b>（科目 '+E(subjOf(cat)||"未設定")+'）':'')+'</div><div class="chips">'+TC.concat(cat&&TC.indexOf(cat)<0?[cat]:[]).map(function(c){return'<button class="chip'+(c===cat?' on':'')+'" data-qc="'+E(c)+'">'+E(c)+'</button>'}).join("")+'<select id="qc" class="chip" style="width:auto;flex:0 0 auto;padding:5px 8px"><option value="">其他…</option>'+D.cats.map(function(c){return'<option>'+E(c[0])+'</option>'}).join("")+'</select></div>'+
+ '<div class="ft"><input type="date" id="qd" value="'+E(qk.date)+'" style="flex:1 1 9em;max-width:11em"><label class="b" style="cursor:pointer">📷 收據'+(qk.ph.length?' ✓'+qk.ph.length:'')+'<input type="file" id="qph" accept="image/*" multiple hidden></label><button class="b g" data-act="qok" style="margin-left:auto;font-size:16px;padding:8px 22px">記下來</button></div>'+
+ (qmsg?'<p class="ok">'+qmsg+'</p>':'')+'</div>'}
 function formUI(){var v=ed;return'<div class="fm"><b>'+(D.v.some(function(x){return x.id===v.id})?"編輯":"新增")+'憑證 #'+E(v.no)+'</b>'+(v.rep?'<p class="note">這張已經撥補過，修改金額會影響撥補紀錄。</p>':'')+
  '<div class="row2"><div><label>日期</label><input type="date" id="f_date" value="'+E(v.date)+'"></div><div><label>編號</label><input id="f_no" value="'+E(v.no)+'"></div></div>'+
  '<div class="row2"><div><label>用途類別</label><select id="f_cat">'+(v.cat&&!subjOf(v.cat)?[[v.cat,""]]:[]).concat(D.cats).map(function(c){return'<option'+(c[0]===v.cat?' selected':'')+'>'+E(c[0])+'</option>'}).join("")+'</select></div><div><label>科目（自動帶出，可改）</label><select id="f_subj">'+(v.subj&&D.subj.indexOf(v.subj)<0?[v.subj]:[]).concat(D.subj).map(function(s){return'<option'+(s===v.subj?' selected':'')+'>'+E(s)+'</option>'}).join("")+'</select></div></div>'+
@@ -220,6 +233,8 @@ function shrink(f){return new Promise(function(r){var rd=new FileReader();rd.onl
 
 // ===== 事件 =====
 document.body.addEventListener("input",function(e){var t=e.target;
+ if(t.id==="qa"&&qk){qk.amt=t.value;return}
+ if(t.id==="qn"&&qk){qk.n=t.value;return}
  if(t.id==="q"){q=t.value;var pos=t.selectionStart;render();var nq=$("q");if(nq){nq.focus();try{nq.setSelectionRange(pos,pos)}catch(x){}}return}
  if(t.id==="pkq"){var k=t.value.trim().toLowerCase().split(/\s+/).filter(Boolean);document.querySelectorAll(".pk label").forEach(function(l){var ok=k.every(function(w){return/^#/.test(w)?l.dataset.no===w.slice(1):(l.dataset.no===w||l.dataset.pkt.indexOf(w)>-1)});l.style.display=ok||l.querySelector("input").checked?"":"none"});return}
  if(t.dataset.i!==undefined&&ed){ed.items[+t.dataset.i][t.dataset.k]=t.value;var k=t.dataset.i,el=document.querySelector('[data-sum="'+k+'"]');if(el)el.textContent="$"+M(N(ed.items[k].p)*N(ed.items[k].q));$("f_tot").textContent="$"+M(tot(ed))}
@@ -227,11 +242,22 @@ document.body.addEventListener("input",function(e){var t=e.target;
  else if(t.dataset.accv!==undefined){accs()[+t.dataset.accv].v=t.value;cCalc()}
  else if(t.dataset.accn!==undefined){accs()[+t.dataset.accn].n=t.value}});
 document.body.addEventListener("change",async function(e){var t=e.target;
+ if(t.id==="qn"&&qk){qk.n=t.value.trim();qk.cat="";qmsg="";render();return}
+ if(t.id==="qd"&&qk){qk.date=t.value||today();return}
+ if(t.id==="qc"&&qk){if(t.value){qk.cat=t.value;render()}return}
+ if(t.id==="qph"&&qk){for(var f of t.files){if(qk.ph.length<2)qk.ph.push(await shrink(f))}t.value="";render();return}
  if(t.dataset.pk){var ap=advAll().filter(function(a){return a.id===alk})[0];if(ap)$("pksum").innerHTML=pkSum(ap);return}
  if(t.id==="mon"){mon=t.value;render()}else if(t.id==="smon"){mon=t.value;render()}else if(t.id==="fs"){fs=t.value;render()}
  else if(t.id==="f_cat"&&ed){var sj=subjOf(t.value);if(sj&&$("f_subj"))$("f_subj").value=sj}
  else if(t.id==="f_ph"&&ed){ed.ph=ed.ph||[];for(var f of t.files){if(ed.ph.length<2)ed.ph.push(await shrink(f))}t.value="";pv()}});
 document.body.addEventListener("click",async function(e){var t=e.target.closest("button,a");if(!t)return;var a=t.dataset.act;
+ if(t.dataset.qn!=null&&qk){qk.n=t.dataset.qn;qk.cat="";qmsg="";render();var qa=$("qa");if(qa&&!qa.value)qa.focus();return}
+ if(t.dataset.qc!=null&&qk){qk.cat=t.dataset.qc;render();return}
+ if(a==="qok"&&qk){qk.amt=$("qa").value;qk.n=$("qn").value.trim();var amt=N(qk.amt),cat=qk.cat||guessCat(qk.n);
+  if(!(amt>0)){alert("請輸入金額");$("qa").focus();return}if(!qk.n&&!cat){alert("請輸入買了什麼");$("qn").focus();return}if(!cat){alert("請點選用途類別");return}
+  var v={id:uid(),no:String(nextNo()),date:qk.date||today(),cat:cat,subj:subjOf(cat)||D.subj[0]||"",items:[{n:qk.n||cat,p:String(amt),q:"1",note:""}],payee:"",note:"",rep:null,nph:qk.ph.length};
+  D.v.push(v);save();if(qk.ph.length)SF.set("docs",PHK+v.id,{ph:qk.ph});var d0=qk.date;qk=qkNew();qk.date=d0;
+  qmsg="✓ 已記下 #"+E(v.no)+" "+E(v.items[0].n)+" $"+M(amt)+"（"+E(cat)+"）";render();var qa2=$("qa");if(qa2)qa2.focus();return}
  if(t.dataset.pvp){try{window.print()}catch(x){alert("這個瀏覽器不能列印，請按「存成 PDF」")}return}
  if(t.dataset.pvf){savePdf(t);return}
  if(t.dataset.pvx){$("pvw").classList.remove("show");return}
