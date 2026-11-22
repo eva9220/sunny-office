@@ -21,6 +21,7 @@ input[type=date],input[type=month]{-webkit-appearance:none;appearance:none;min-h
 .note{font-size:13px;color:var(--sub)}
 .tw{overflow-x:auto;background:#fffdf9;border-radius:16px;box-shadow:0 3px 0 var(--line)}
 .it{background:#fffdf9;border-radius:18px;padding:10px 14px;margin-bottom:10px;box-shadow:0 3px 0 var(--line)}.it .t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.it .t b{font-size:16px}.it small{color:var(--sub)}.it .amt{color:var(--p,#dc8f80);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}.it table.s{display:block;overflow-x:auto}
+.qk{background:#fffdf9;border-radius:20px;padding:12px 14px;margin-bottom:12px;box-shadow:0 4px 0 var(--line)}.qk h3{margin:0 0 8px;font-size:17px}.qk .r{display:flex;gap:8px;margin-bottom:8px}.qk .r>*{min-width:0}.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}.chip.on{background:var(--g);border-color:var(--g);color:#fff}select.chip{width:auto;max-width:8.5em}.qk .ft{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.qk .okm{color:#3f8a5c;font-size:14px;margin:8px 0 0}
 table.s{width:100%;border-collapse:collapse;font-size:14px}table.s td,table.s th{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;white-space:nowrap}
 table.s td.n,table.s th.n{text-align:right;font-variant-numeric:tabular-nums}table.s td.w{white-space:normal;min-width:140px}
 table.s tr.e:hover{background:#f6efe4;cursor:pointer}.in{color:#3f8a5c}.out{color:#c4513e}
@@ -41,7 +42,7 @@ var N=function(v){v=+v;return isFinite(v)?v:0},M=function(v){return Math.round(N
 var BUDGET_SUBJ=["薪資支出","勞健退","伙食","水費","電費","郵電費","職工福利","教材費","活動費","雜支","暫收付","租金","稅捐","退費","設備-購置","設備-修繕","交際費"];
 var DEF={rows:[],subj:["股金","利息","租金","土地","建築","工程","設備","訂金","零用金"].concat(BUDGET_SUBJ.filter(function(s){return s!=="租金"})),budget:{},bstart:"2026-09",bank:"",pay:[]};
 var ped=null,pop="";
-var D=null,P=null,tab="l",ed=null,mon="",fs="",q="";
+var D=null,P=null,tab="l",ed=null,mon="",fs="",q="",lq=null,lqmsg="";
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function roc(d){var m=String(d||"").match(/^(\d{4})-(\d\d)-(\d\d)/);return m?(m[1]-1911)+"/"+m[2]+"/"+m[3]:d||""}
@@ -60,8 +61,18 @@ function render(){if(!D)return;var t=tots(),bal=t[0]-t[1],h="";
  h+=tab==="l"?lUI():tab==="p"?pUI():tab==="b"?bUI():setUI();$("app").innerHTML=h}
 function bankRes(bal){if(D.bank===""||D.bank==null)return"";var d=N(D.bank)-bal;return d===0?'<span class="ok">✅ 對平</span>':'<span class="bad">差 '+(d>0?"+":"−")+M(Math.abs(d))+'</span>'}
 
-function lUI(){var h="";if(ed)return formUI();
- h+='<div class="bar"><button class="b bl" data-act="new">＋ 新增一筆</button><input type="month" id="mon" value="'+mon+'"><select id="fs"><option value="">全部科目</option>'+D.subj.map(function(s){return'<option'+(s===fs?' selected':'')+'>'+E(s)+'</option>'}).join("")+'</select><input id="q" placeholder="搜尋" value="'+E(q)+'" style="flex:1;min-width:100px"></div>';
+// ===== 快速記一筆：提領到零用金／支出／收入 =====
+var LQT={pw:{t:"🏦 提領到零用金",item:"銀行提領撥入零用金",subj:"零用金",io:"exp"},ex:{t:"支出",io:"exp"},in:{t:"收入",io:"inc"}};
+function lqNew(){return{k:"pw",date:today(),amt:"",item:"",subj:"",note:""}}
+function lqSubjs(io){var c={};D.rows.forEach(function(r){if(r.subj&&N(r[io]))c[r.subj]=(c[r.subj]||0)+1});var L=Object.keys(c).filter(function(x){return x!=="零用金"}).sort(function(a,b){return c[b]-c[a]}).slice(0,6);D.subj.forEach(function(x){if(L.length<6&&L.indexOf(x)<0&&x!=="零用金")L.push(x)});return L}
+function lqUI(){if(!lq)lq=lqNew();var T=LQT[lq.k],sj=T.subj||lq.subj,S=T.subj?[]:lqSubjs(T.io);
+ return'<div class="qk"><h3>⚡ 快速記一筆</h3><div class="chips">'+Object.keys(LQT).map(function(k){return'<button class="chip'+(lq.k===k?' on':'')+'" data-lqk="'+k+'">'+LQT[k].t+'</button>'}).join("")+'</div>'+
+ '<div class="r"><input id="lqa" type="number" inputmode="numeric" placeholder="'+(T.io==="inc"?"收入金額":"金額")+'" value="'+E(lq.amt)+'" style="flex:0 0 42%;font-size:22px;font-weight:700"><input id="lqi" placeholder="'+(T.item?E(T.item):"項目（例如 廠商名稱）")+'" value="'+E(lq.item)+'" style="flex:1"></div>'+
+ (T.io==="exp"&&!T.subj?'<p class="note" style="margin:-4px 0 8px">轉帳手續費請算在金額裡，並在備註寫「手續費15」。</p>':'')+(T.subj?'<p class="note" style="margin:-2px 0 8px">科目：<b>零用金</b>。記好後在「💰 零用金」的總收入就會增加。</p>':'<div class="note" style="margin:-2px 0 4px">科目'+(sj?'：<b>'+E(sj)+'</b>':'')+'</div><div class="chips">'+S.concat(sj&&S.indexOf(sj)<0?[sj]:[]).map(function(x){return'<button class="chip'+(x===sj?' on':'')+'" data-lqs="'+E(x)+'">'+E(x)+'</button>'}).join("")+'<select id="lqs" class="chip"><option value="">其他…</option>'+D.subj.map(function(x){return'<option>'+E(x)+'</option>'}).join("")+'</select></div>')+
+ '<div class="ft"><input type="date" id="lqd" value="'+E(lq.date)+'" style="flex:1 1 9em;max-width:11em"><input id="lqn" placeholder="備註（選填）" value="'+E(lq.note)+'" style="flex:1 1 8em"><button class="b g" data-act="lqok" style="margin-left:auto;font-size:16px;padding:8px 22px">記下來</button></div>'+
+ (lqmsg?'<p class="okm">'+lqmsg+'</p>':'')+'</div>'}
+function lUI(){var h="";if(ed)return formUI();h+=lqUI();
+ h+='<div class="bar"><button class="b bl" data-act="new">＋ 詳細新增</button><input type="month" id="mon" value="'+mon+'"><select id="fs"><option value="">全部科目</option>'+D.subj.map(function(s){return'<option'+(s===fs?' selected':'')+'>'+E(s)+'</option>'}).join("")+'</select><input id="q" placeholder="搜尋" value="'+E(q)+'" style="flex:1;min-width:100px"></div>';
  var W=withBal(),L=W.filter(function(x){var r=x.r;return(!mon||r.date.slice(0,7)===mon)&&(!fs||r.subj===fs)&&(!q||(r.item+r.note+r.subj).indexOf(q)>-1)});
  var si=L.reduce(function(s,x){return s+N(x.r.inc)},0),so=L.reduce(function(s,x){return s+N(x.r.exp)},0);
  h+='<p class="note">'+L.length+' 筆，收入 $'+M(si)+'，支出 $'+M(so)+'。點一列可以修改。</p>';
@@ -143,13 +154,14 @@ function exportXl(){var W=withBal(),R=[["初晴之森托嬰中心收支表"],["�
 
 // 事件
 document.body.addEventListener("change",async function(e){var t=e.target;
+ if(lq){if(t.id==="lqd"){lq.date=t.value||today();return}if(t.id==="lqs"){if(t.value){lq.subj=t.value;render()}return}}
  if(t.id==="mon"){mon=t.value;render()}else if(t.id==="fs"){fs=t.value;render()}
  else if(t.id==="bank"){D.bank=t.value;save();render()}
  else if(t.id==="bstart"){D.bstart=t.value||D.bstart;save();render()}
  else if(t.dataset.bs){var s=t.dataset.bs;D.budget[s]=D.budget[s]||{};D.budget[s][t.dataset.bm]=t.value;save();render()}
  else if(t.id==="pimf"){var f2=t.files[0];t.value="";if(f2){try{await importPay(f2)}catch(x){console.error(x);alert("無法讀取這個檔案："+(x.message||x))}}}
  else if(t.id==="imf"){var f=t.files[0];t.value="";if(f){try{await importXl(f)}catch(x){console.error(x);alert("無法讀取這個檔案："+(x.message||x))}}}});
-document.body.addEventListener("input",function(e){if(e.target.id==="q"){q=e.target.value;var p=e.target.selectionStart;render();var n=$("q");n.focus();n.setSelectionRange(p,p)}
+document.body.addEventListener("input",function(e){var lt=e.target;if(lq&&lt.id==="lqa"){lq.amt=lt.value;return}if(lq&&lt.id==="lqi"){lq.item=lt.value;return}if(lq&&lt.id==="lqn"){lq.note=lt.value;return}if(e.target.id==="q"){q=e.target.value;var p=e.target.selectionStart;render();var n=$("q");n.focus();n.setSelectionRange(p,p)}
  else if(e.target.id==="bank"){var t=tots();$("bres").innerHTML=(D.bank=e.target.value,bankRes(t[0]-t[1]))}});
 document.body.addEventListener("click",function(e){var t=e.target.closest("button,tr.e");if(!t)return;var a=t.dataset.act;
  if(t.dataset.tab){tab=t.dataset.tab;ed=null;ped=null;render();return}
@@ -163,6 +175,12 @@ document.body.addEventListener("click",function(e){var t=e.target.closest("butto
   D.pay=D.pay||[];var ix=D.pay.map(function(p){return p.id}).indexOf(ped.id);if(ix>-1)D.pay[ix]=ped;else D.pay.push(ped);ped=null;save();render();return}
  if(a==="pdel"){if(!confirm("刪除這筆應付款？（收支表的付款不會被刪）"))return;D.pay=D.pay.filter(function(p){return p.id!==ped.id});ped=null;save();render();return}
  if(a==="pimp"){$("pimf").click();return}
+ if(lq&&t.dataset.lqk){lq.k=t.dataset.lqk;lq.subj="";lqmsg="";render();return}
+ if(lq&&t.dataset.lqs!=null){lq.subj=t.dataset.lqs;render();return}
+ if(lq&&a==="lqok"){lq.amt=$("lqa").value;lq.item=$("lqi").value.trim();lq.note=$("lqn").value.trim();var T=LQT[lq.k],am=N(lq.amt),it=lq.item||T.item||"",sj=T.subj||lq.subj;
+  if(!(am>0)){alert("請輸入金額");$("lqa").focus();return}if(!it){alert("請輸入項目");$("lqi").focus();return}if(!sj){alert("請點選科目");return}
+  var nr={id:uid(),date:lq.date||today(),item:it,subj:sj,inc:T.io==="inc"?am:"",exp:T.io==="exp"?am:"",note:lq.note};D.rows.push(nr);save();
+  lqmsg="✓ 已記下 "+roc(nr.date)+" "+E(it)+" "+(T.io==="inc"?"收入":"支出")+" $"+M(am)+"（"+E(sj)+"）";var k0=lq.k,d0=lq.date;lq=lqNew();lq.k=k0;lq.date=d0;render();return}
  if(a==="new"){ed={id:uid(),date:today(),item:"",subj:fs||D.subj[0],inc:"",exp:"",note:""};render()}
  else if(a==="no"){ed=null;render()}
  else if(a==="ok"){["date","item","subj","inc","exp","note"].forEach(function(k){ed[k]=$("f_"+k).value.trim()});if(!ed.date||!ed.item){alert("請填日期和項目");return}if(!N(ed.inc)&&!N(ed.exp)){alert("請填收入或支出");return}
