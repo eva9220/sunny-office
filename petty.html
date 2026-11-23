@@ -56,6 +56,8 @@ table.s{width:100%;border-collapse:collapse;font-size:14px}table.s td,table.s th
 .pg .hint{text-align:center;font-size:10.5pt;margin:2mm 0 3mm}
 .pg .itm th{background:#ddd;text-align:left}.pg .itm td{height:7.4mm;text-align:left}.pg .itm td.n{text-align:right}
 .pg .rc{margin-top:8mm;font-size:11.5pt;line-height:2.2}
+.pg.phpg .phh{font-size:12pt;border-bottom:1px solid #000;padding-bottom:2mm;margin-bottom:4mm;display:flex;justify-content:space-between;gap:4mm}.pg.phpg .phs{display:flex;flex-direction:column;align-items:center;gap:5mm}.pg.phpg img{max-width:100%;max-height:118mm;object-fit:contain;border:1px solid #ccc}.pg.phpg.one img{max-height:240mm}
+.clip{cursor:pointer;text-decoration:underline}
 .pg.cv{display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:255mm;padding:80mm 0 50mm;font-size:16pt;text-align:center;line-height:2.1}
 @media print{@page{size:A4 portrait;margin:14mm 16mm}body{background:#fff}header,main,#pvw .tb{display:none!important}#pvw{position:static;display:block!important;background:#fff;overflow:visible;padding:0}#pvw .pages{display:block;padding:0}#pvw .pg{width:auto;min-height:0;padding:0;box-shadow:none;zoom:1!important}}
 </style></head><body>
@@ -118,7 +120,7 @@ function vUI(){var h="";
  h+='<div class="bar"><button class="b y" data-act="new">＋ 詳細新增（多項明細）</button><input type="month" id="mon" value="'+mon+'"><select id="fs"><option value="">全部用途類別</option>'+D.cats.map(function(c){return'<option'+(c[0]===fs?' selected':'')+'>'+E(c[0])+'</option>'}).join("")+'</select></div><input type="search" id="q" value="'+E(q)+'" placeholder="🔍 搜尋編號、項目、領款人、金額…（#12 只找編號 12）" style="width:100%;margin-bottom:8px">';
  var L=D.v.filter(function(v){return(!mon||String(v.date).slice(0,7)===mon)&&(!fs||v.cat===fs)&&hit(v,q)}).sort(function(a,b){return(parseInt(b.no,10)||0)-(parseInt(a.no,10)||0)});
  h+='<p class="note">共 '+L.length+' 張，合計 $'+M(L.reduce(function(s,v){return s+tot(v)},0))+'</p>';
- h+=L.map(function(v){return'<div class="it"><div class="t"><b>#'+E(v.no)+' '+E(v.cat||"（未選用途）")+'</b><span class="amt">$'+M(tot(v))+'</span></div><small>'+(LM()?'':'<span class="st '+(v.rep?'r">已撥補':'u">未撥補')+'</span>')+E(v.date)+(v.subj?' ・ '+E(v.subj):'')+(v.payee?' ・ 領款人 '+E(v.payee):'')+(v.nph?' ・ 📎'+v.nph:'')+advTag(v)+'</small><div style="font-size:14px">'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</div><div class="bar" style="margin:6px 0 0"><button class="b" data-ed="'+v.id+'">編輯</button><button class="b" data-pr="'+v.id+'">🖨️ 列印支出表</button>'+(advOf(v)?'':'<button class="b" data-toadv="'+v.id+'">🤝 別人先付（記代墊款）</button>')+'</div></div>'}).join("")||'<p class="note" style="text-align:center">這個條件下沒有憑證。</p>';
+ h+=L.map(function(v){return'<div class="it"><div class="t"><b>#'+E(v.no)+' '+E(v.cat||"（未選用途）")+'</b><span class="amt">$'+M(tot(v))+'</span></div><small>'+(LM()?'':'<span class="st '+(v.rep?'r">已撥補':'u">未撥補')+'</span>')+E(v.date)+(v.subj?' ・ '+E(v.subj):'')+(v.payee?' ・ 領款人 '+E(v.payee):'')+(v.nph?' ・ <a class="clip" data-pr="'+v.id+'">📎 收據 '+v.nph+' 張</a>':'')+advTag(v)+'</small><div style="font-size:14px">'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</div><div class="bar" style="margin:6px 0 0"><button class="b" data-ed="'+v.id+'">編輯</button><button class="b" data-pr="'+v.id+'">👁️ 預覽／列印</button>'+(advOf(v)?'':'<button class="b" data-toadv="'+v.id+'">🤝 別人先付（記代墊款）</button>')+'</div></div>'}).join("")||'<p class="note" style="text-align:center">這個條件下沒有憑證。</p>';
  h+='<div class="bar" style="margin-top:6px"><button class="b" data-act="prm">🖨️ 列印本月全部支出表</button><button class="b" data-act="cover">🖨️ 列印封面</button><button class="b" data-act="xl">📥 匯出 Excel</button><button class="b" data-act="vimp">📤 匯入憑證 Excel</button><button class="b" data-act="renum">🔢 重新編號</button></div>';
  return h}
 // ===== 快速記一筆：金額＋項目，點常用項目自動帶用途類別和科目 =====
@@ -212,6 +214,10 @@ function vPage(v){var d=roc(v.date),c=Math.round(tot(v)*100),s=String(c),cells=[
 function cover(ym){var d=ym?roc(ym+"-01"):["","",""];return'<div class="pg cv"><div>臺南市私立初晴之森托嬰中心<br>原始支出憑證黏貼表<br><span style="font-size:13pt;color:#555">（封面）</span></div><div>中華民國　'+(d[0]||"　　")+'　年　'+(d[1]||"　　")+'　月　　　日</div></div>'}
 function repPage(r){var V=D.v.filter(function(v){return r.ids.indexOf(v.id)>-1}).sort(function(a,b){return(parseInt(a.no,10)||0)-(parseInt(b.no,10)||0)}),d=roc(r.date);
  return'<div class="pg"><h1>零用金撥補明細表</h1><div class="rd">撥補日期：中華民國 '+d[0]+' 年 '+d[1]+' 月 '+d[2]+' 日</div><table class="itm"><colgroup><col style="width:12%"><col style="width:18%"><col style="width:20%"><col><col style="width:16%"></colgroup><tr><th>編號</th><th>日期</th><th>科目</th><th>摘要</th><th>金額</th></tr>'+V.map(function(v){return'<tr><td>'+E(v.no)+'</td><td>'+E(v.date)+'</td><td>'+E(v.subj)+'</td><td>'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'</td><td class="n">'+M(tot(v))+'</td></tr>'}).join("")+'<tr><th colspan="4" style="text-align:right">撥補合計</th><th style="text-align:right">'+M(r.amt)+'</th></tr></table><p style="font-size:11pt">零用金定額 $'+M(D.quota)+'，本次撥補 $'+M(r.amt)+'。</p><div class="sg"><span>製表：＿＿＿＿＿</span><span>出納：＿＿＿＿＿</span><span>會計：＿＿＿＿＿</span><span>主任：＿＿＿＿＿</span></div></div>'}
+// 收據照片附件頁：每張憑證的照片接在支出表後面
+function phPage(v,ph){if(!ph||!ph.length)return"";return'<div class="pg phpg'+(ph.length===1?' one':'')+'"><div class="phh"><b>附件：憑證 #'+E(v.no)+' 單據照片</b><span>'+E(v.date)+'　'+E(v.items.map(function(i){return i.n}).filter(Boolean).join("、"))+'　$'+M(tot(v))+'</span></div><div class="phs">'+ph.map(function(u){return'<img src="'+u+'">'}).join("")+'</div></div>'}
+async function withPh(L,head){var w=$("pvw");w.innerHTML='<div class="tb"><small>載入收據照片中…</small></div>';w.classList.add("show");var out=head||"";
+ for(var i=0;i<L.length;i++){var v=L[i],ph=[];if(v.nph){try{ph=await getPh(v.id)}catch(e){ph=[]}}out+=vPage(v)+phPage(v,ph)}doPrint(out)}
 function doPrint(html){var w=$("pvw");w.innerHTML='<div class="tb"><button class="g" data-pvp="1">🖨️ 列印</button><button data-pvf="1">📄 存成 PDF</button><button data-pvx="1">✕ 關閉</button><small>按「列印」沒有反應時（例如從 LINE 開啟），請按「存成 PDF」再列印</small></div><div class="pages">'+html+'</div>';w.classList.add("show");w.scrollTop=0}
 function ld(u){return new Promise(function(r,j){var s=document.createElement("script");s.src=u;s.onload=r;s.onerror=j;document.head.appendChild(s)})}
 async function savePdf(btn){btn.disabled=true;var t=btn.textContent;try{
@@ -316,7 +322,7 @@ document.body.addEventListener("click",async function(e){var t=e.target.closest(
  if(t.dataset.act==="adel"){if(!confirm("刪除這筆代墊款？"))return;D.adv=advAll().filter(function(a){return a.id!==aed.id});aed=null;save();render();return}
  if(t.dataset.tab){tab=t.dataset.tab;ed=null;render();return}
  if(t.dataset.ed){openEdit(t.dataset.ed);return}
- if(t.dataset.pr){var v=D.v.filter(function(x){return x.id===t.dataset.pr})[0];if(v)doPrint(vPage(v));return}
+ if(t.dataset.pr){var v=D.v.filter(function(x){return x.id===t.dataset.pr})[0];if(v)withPh([v]);return}
  if(t.dataset.idel!==undefined){readForm();ed.items.splice(+t.dataset.idel,1);itR();$("f_tot").textContent="$"+M(tot(ed));return}
  if(t.dataset.phx!==undefined){e.preventDefault();ed.ph.splice(+t.dataset.phx,1);pv();return}
  if(t.dataset.accdel!==undefined){accs().splice(+t.dataset.accdel,1);$("accw").innerHTML=accUI();cCalc();return}
@@ -330,7 +336,7 @@ document.body.addEventListener("click",async function(e){var t=e.target.closest(
   if(!ed.date){alert("請填日期");return}var ph=ed.ph,v=JSON.parse(JSON.stringify(ed));delete v.ph;if(v._aid){v.aid=v._aid;delete v._aid}if(ph!==null)v.nph=(ph||[]).length;
   var i=D.v.map(function(x){return x.id}).indexOf(v.id);if(i>-1)D.v[i]=v;else D.v.push(v);save();if(ph!==null)SF.set("docs",PHK+v.id,{ph:ph||[]});ed=null;render()}
  else if(a==="vdel"){var la=advOf(ed);if(la&&advV(la).length>1)la=null;if(!confirm("確定刪除憑證 #"+ed.no+"？"+(la?"\n（對應的代墊款也會一起刪除）":"")))return;if(la)D.adv=advAll().filter(function(x){return x!==la});D.v=D.v.filter(function(x){return x.id!==ed.id});D.reps.forEach(function(r){r.ids=r.ids.filter(function(id){return id!==ed.id})});save();SF.remove("docs",PHK+ed.id);ed=null;render()}
- else if(a==="prm"){var m=mon||today().slice(0,7),L=D.v.filter(function(v){return String(v.date).slice(0,7)===m}).sort(function(a,b){return(parseInt(a.no,10)||0)-(parseInt(b.no,10)||0)});if(!L.length){alert(m+" 沒有憑證");return}doPrint(cover(m)+L.map(vPage).join(""))}
+ else if(a==="prm"){var m=mon||today().slice(0,7),L=D.v.filter(function(v){return String(v.date).slice(0,7)===m}).sort(function(a,b){return(parseInt(a.no,10)||0)-(parseInt(b.no,10)||0)});if(!L.length){alert(m+" 沒有憑證");return}withPh(L,cover(m))}
  else if(a==="cover"){doPrint(cover(mon||today().slice(0,7)))}
  else if(a==="xl"){exportXl()}
  else if(a==="vimp"){$("vimf").click()}
