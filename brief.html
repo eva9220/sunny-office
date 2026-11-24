@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>今日會報｜Sunny Office</title>
+<style>
+:root{--bg:#fbf6ef;--ink:#4d4a47;--sub:#8c857d;--g:#57704f;--line:#eadfd2;--bad:#c4513e;--ok:#3f8a5c;color-scheme:light}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding-bottom:calc(30px + env(safe-area-inset-bottom,0px))}
+header{background:#6f8667;color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 12px;display:flex;align-items:center;gap:10px}
+header a{color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:10px;padding:4px 12px;text-decoration:none;font-size:14px}
+header b{font-size:18px}
+main{max-width:640px;margin:0 auto;padding:14px}
+.day{font-size:15px;color:var(--sub);margin:0 0 10px}
+.card{background:#fffdf9;border-radius:20px;padding:12px 14px;margin-bottom:14px;box-shadow:0 4px 0 var(--line)}
+.card h3{margin:0 0 6px;font-size:17px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card h3 a{font-size:13px;font-weight:400;color:var(--g)}
+.sec{font-size:13px;font-weight:700;color:var(--sub);margin:8px 0 2px}
+.it{display:flex;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:15px;align-items:baseline}
+.it:last-child{border-bottom:0}
+.it .tm{flex:none;min-width:3.4em;font-weight:700;color:var(--g)}
+.it .tx{flex:1;min-width:0}
+.it small{display:block;color:var(--sub);font-size:13px}
+.it .amt{flex:none;font-weight:700}
+.tag{display:inline-block;font-size:12px;border-radius:99px;padding:0 8px;margin-left:4px;background:#e4ebe0;color:var(--g)}
+.tag.r{background:#f8e1dc;color:var(--bad)}
+.none{color:var(--sub);font-size:14px;margin:4px 0}
+.bad{color:var(--bad)}.ok{color:var(--ok)}
+.tip{font-size:13px;color:var(--sub);line-height:1.7}
+.b{display:inline-block;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer;text-decoration:none;margin:4px 6px 0 0}
+.b.g{background:var(--g);border-color:var(--g);color:#fff}
+a.tel{color:inherit}
+</style></head><body>
+<header><a href="index.html">← Sunny Office</a><b>📋 今日會報</b></header>
+<main id="app"><p class="none">載入中…</p></main>
+<script type="module">
+import { SF } from "./cloud.js";
+var $=function(i){return document.getElementById(i)};
+var E=function(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")};
+var N=function(v){var n=parseFloat(String(v==null?"":v).replace(/,/g,""));return isNaN(n)?0:n};
+var M=function(n){return Math.round(N(n)).toLocaleString("en-US")};
+var WK="日一二三四五六";
+function pad(n){return String(n).padStart(2,"0")}
+function iso(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+var T0=new Date();T0=new Date(T0.getFullYear(),T0.getMonth(),T0.getDate());var TODAY=iso(T0);
+function addD(d,n){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n)}
+function lbl(d){return(d.getMonth()+1)+"/"+d.getDate()+"（"+WK[d.getDay()]+"）"}
+
+// ---- 讀資料：sunny-office 的 docs 和 入園指南網站的 kv（同一個雲端）----
+function once(col,id){return new Promise(function(res){var u=null,done=false;u=SF.watchDoc(col,id,function(d){if(done)return;done=true;res(d);setTimeout(function(){u&&u()},0)},function(){if(!done){done=true;res(null)}})})}
+async function kv(key){var enc=encodeURIComponent(key),m=await once("kv",enc);if(!m||!m.n)return null;var s="";for(var i=0;i<m.n;i++){var c=await once("kv",enc+"#"+i);s+=(c&&c.d)||""}try{return JSON.parse(s)}catch(e){return null}}
+async function docJ(id){var d=await once("docs",id);try{return d&&d.data?JSON.parse(d.data):null}catch(e){return null}}
+
+// ---- 參觀預約 ----
+var CLS=[["嫩芽班",0,11],["花曦班",12,20],["晴空班",21,36]];
+function ad(y,m,d){y=+y;m=+m;d=+d;if(!y||!m||!d)return null;if(y<1000)y+=1911;return new Date(y,m-1,d)}
+function diff(a,b){if(!a||!b||b<a)return null;var m=(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth();if(b.getDate()<a.getDate())m--;var x=new Date(a.getFullYear(),a.getMonth()+m,a.getDate());return{m:m,d:Math.round((b-x)/864e5)}}
+function ageTxt(o){if(!o)return"";var y=Math.floor(o.m/12),m=o.m%12;return(y?y+"歲":"")+(m||!y?m+"個月":"")+(o.d?o.d+"天":"")}
+function clsOf(m){for(var k=0;k<CLS.length;k++)if(m>=CLS[k][1]&&m<=CLS[k][2])return CLS[k][0];return""}
+async function visits(){var C=await kv("visit:classes");if(C&&C.length===3)C.forEach(function(c,k){CLS[k][1]=+c[1];CLS[k][2]=+c[2]});
+ var out=[],ms=[0,1].map(function(k){var d=new Date(T0.getFullYear(),T0.getMonth()+k,1);return d.getFullYear()+"-"+pad(d.getMonth()+1)});
+ for(var k=0;k<ms.length;k++){var X=await kv("visit:"+ms[k]);if(!X||!X.rows)continue;var y=+ms[k].slice(0,4);
+  X.rows.forEach(function(r,i){if(!r||!(r.p||r.ph||r.c)||!r.vm||!r.vd)return;var d=new Date(y,+r.vm-1,+r.vd);if(isNaN(d))return;
+   var b=ad(r.by,r.bm,r.bd),e=ad(r.ey,r.em,r.ed),now=b?(b>T0?"未出生":ageTxt(diff(b,T0))):(r.ag||""),cls="";if(b&&e){var de=diff(b,e);cls=de?clsOf(de.m):""}
+   if(!cls)cls=[["k1","嫩芽班"],["k2","花曦班"],["k3","晴空班"]].filter(function(x){return r[x[0]]}).map(function(x){return x[1]}).join("、");
+   out.push({d:d,t:r.vt||"",p:r.p||"",ph:r.ph||"",c:r.c||"",age:now,cls:cls,n:r.n1||""})})}
+ return out.sort(function(a,b){return a.d-b.d||(a.t<b.t?-1:1)})}
+function vItem(v){return'<div class="it"><span class="tm">'+E(v.t||"未定")+'</span><span class="tx"><b>'+E(v.p||"（未填姓名）")+'</b>'+(v.c?'・'+E(v.c):'')+(v.age?'<span class="tag">'+E(v.age)+'</span>':'')+(v.cls?'<span class="tag">'+E(v.cls)+'</span>':'')+
+ '<small>'+(v.ph?'📞 <a class="tel" href="tel:'+E(v.ph.replace(/[^\d+]/g,""))+'">'+E(v.ph)+'</a>':'')+(v.n?'　'+E(v.n):'')+'</small></span></div>'}
+
+// ---- 行事曆：本月與下月的活動文字，抓出有日期的行 ----
+async function calendar(){var C=await kv("calendar:v1"),m=(C&&C.m)||{},out=[];
+ [0,1].forEach(function(k){var d=new Date(T0.getFullYear(),T0.getMonth()+k,1),mk=d.getFullYear()+"-"+pad(d.getMonth()+1),o=m[mk]||{};
+  ["act","sani"].forEach(function(f){String(o[f]||"").split(/\n|；|;/).forEach(function(l){l=l.trim();if(!l)return;var x=l.match(/(\d{1,2})\s*[\/月]\s*(\d{1,2})/),dt=null;if(x){dt=new Date(d.getFullYear(),+x[1]-1,+x[2]);if(+x[1]<d.getMonth()+1-6)dt.setFullYear(dt.getFullYear()+1)}out.push({mk:mk,mon:d.getMonth()+1,dt:dt,t:l,theme:o.theme||""})})})});
+ return out}
+
+// ---- 會計 ----
+async function money(){var P=await docJ("docs_staff_petty"),L=await docJ("docs_staff_ledger"),K=await docJ("docs_staff_checklist"),o={};
+ if(K){o.todo=(K.todo||[]).filter(function(x){return!(K.done||{})[x.id]});var mk=TODAY.slice(0,7),md=(K.mdone||{})[mk]||{};o.mon=(K.monthly||[]).filter(function(x){return!md[x.id]});o.monTotal=(K.monthly||[]).length}
+ if(P){var A=(P.adv||[]).filter(function(a){return a.st!=="已還"}),g={};A.forEach(function(a){g[a.who||"（未填）"]=(g[a.who||"（未填）"]||0)+N(a.amt)});o.adv=g;o.advSum=A.reduce(function(s,a){return s+N(a.amt)},0);
+  var C=(P.counts||[]).slice().sort(function(a,b){return a.date<b.date?1:-1});o.lastCount=C[0]||null;
+  var noPh=(P.v||[]).filter(function(v){return String(v.date).slice(0,7)===TODAY.slice(0,7)&&!v.nph});o.noPh=noPh.length}
+ if(L){var rows=L.rows||[],fee=function(r){var m=String(r.note||"").match(/手續費\s*(\d+)/);if(m)return N(m[1]);var x=N(r.exp)%1000;return N(r.exp)>1000&&(x===15||x===30)?x:0},
+  kws=function(p){return String(p.kw||p.vendor||"").split(/[,，、\s]+/).filter(Boolean)},
+  paid=function(p){if(p.nomatch)return N(p.adj);var K2=kws(p);return rows.filter(function(r){var t=(r.item||"")+" "+(r.note||"");return K2.some(function(k){return t.indexOf(k)>-1})}).reduce(function(s,r){return s+(N(r.exp)?N(r.exp)-fee(r):0)-N(r.inc)},0)+N(p.adj)};
+  var lim=iso(addD(T0,14));o.pay=(L.pay||[]).map(function(p){return{v:p.vendor,it:p.item,due:p.due,rest:N(p.total)-paid(p)}}).filter(function(p){return p.rest>0&&p.due&&p.due<=lim}).sort(function(a,b){return a.due<b.due?-1:1});
+  o.bank=L.bank;var t=rows.reduce(function(s,r){return[s[0]+N(r.inc),s[1]+N(r.exp)]},[0,0]);o.bal=t[0]-t[1]}
+ return o}
+
+async function run(){var V=[],CAL=[],MO={};try{V=await visits()}catch(e){console.error(e)}try{CAL=await calendar()}catch(e){console.error(e)}try{MO=await money()}catch(e){console.error(e)}
+ var h='<p class="day">今天是 '+T0.getFullYear()+' 年 '+lbl(T0)+'</p>',tm=iso(addD(T0,1)),wk=iso(addD(T0,7));
+ // 參觀
+ var vt=V.filter(function(v){return iso(v.d)===TODAY}),vm=V.filter(function(v){return iso(v.d)===tm}),vw=V.filter(function(v){var s=iso(v.d);return s>tm&&s<=wk});
+ h+='<div class="card"><h3>📝 參觀預約 <a href="../visit.html">登記表 ›</a></h3>'+
+  '<div class="sec">今天 '+lbl(T0)+'</div>'+(vt.length?vt.map(vItem).join(""):'<p class="none">今天沒有參觀。</p>')+
+  '<div class="sec">明天 '+lbl(addD(T0,1))+'</div>'+(vm.length?vm.map(vItem).join(""):'<p class="none">明天沒有參觀。</p>')+
+  (vw.length?'<div class="sec">這週其他天</div>'+vw.map(function(v){return'<div class="it"><span class="tm">'+lbl(v.d)+'</span><span class="tx">'+E(v.t)+' <b>'+E(v.p)+'</b>'+(v.c?'・'+E(v.c):'')+(v.cls?'<span class="tag">'+E(v.cls)+'</span>':'')+'</span></div>'}).join(""):'')+
+  '<p class="tip" style="margin:8px 0 0">'+(vt.length+vm.length+vw.length)+' 位在接下來 7 天內參觀。</p></div>';
+ // 會計
+ var a='';
+ if(MO.mon)a+='<div class="sec">本月例行（'+(MO.monTotal-MO.mon.length)+' / '+MO.monTotal+' 完成）</div>'+(MO.mon.length?MO.mon.slice(0,6).map(function(x){return'<div class="it"><span class="tx">☐ '+E(x.t)+'</span></div>'}).join("")+(MO.mon.length>6?'<p class="tip">還有 '+(MO.mon.length-6)+' 項…</p>':''):'<p class="none ok">本月例行都完成了 ✓</p>');
+ if(MO.todo&&MO.todo.length)a+='<div class="sec">待辦事項（'+MO.todo.length+' 項未完成）</div>'+MO.todo.slice(0,5).map(function(x){return'<div class="it"><span class="tx">☐ '+E(x.t)+(x.g?'<span class="tag">'+E(x.g)+'</span>':'')+'</span></div>'}).join("")+(MO.todo.length>5?'<p class="tip">還有 '+(MO.todo.length-5)+' 項…</p>':'');
+ if(MO.lastCount!==undefined){var lc=MO.lastCount,days=lc?Math.round((T0-new Date(lc.date))/864e5):null;
+  a+='<div class="sec">零用金點鈔</div><div class="it"><span class="tx">'+(lc?'上次點鈔 '+E(lc.date)+'（'+days+' 天前）'+(days>7?'<span class="tag r">該點鈔了</span>':''):'<span class="bad">還沒有點鈔紀錄</span>')+'</span></div>';
+  if(MO.noPh)a+='<div class="it"><span class="tx">本月有 '+MO.noPh+' 張憑證沒有附收據照片</span></div>'}
+ if(MO.advSum)a+='<div class="sec">尚未歸還的代墊款</div>'+Object.keys(MO.adv).map(function(k){return'<div class="it"><span class="tx">'+E(k)+'</span><span class="amt bad">$'+M(MO.adv[k])+'</span></div>'}).join("");
+ if(MO.pay)a+='<div class="sec">14 天內到期的應付尾款</div>'+(MO.pay.length?MO.pay.map(function(p){var od=p.due<TODAY;return'<div class="it"><span class="tm">'+E(p.due.slice(5).replace("-","/"))+'</span><span class="tx">'+E(p.v)+(p.it?'　'+E(p.it):'')+(od?'<span class="tag r">已過期</span>':'')+'</span><span class="amt">$'+M(p.rest)+'</span></div>'}).join(""):'<p class="none">沒有。</p>');
+ if(MO.bal!=null&&MO.bank!==""&&MO.bank!=null){var d=N(MO.bank)-MO.bal;a+='<div class="sec">本帳對帳</div><div class="it"><span class="tx">'+(d===0?'<span class="ok">✅ 本帳和網銀對平</span>':'<span class="bad">本帳和網銀差 $'+M(Math.abs(d))+'</span>，請補登')+'</span></div>'}
+ h+='<div class="card"><h3>💰 會計 <a href="books.html">記帳 ›</a></h3>'+(a||'<p class="none">沒有會計資料，或沒有權限查看。</p>')+'<p style="margin:6px 0 0"><a class="b" href="checklist.html">✅ 會計清單</a></p></div>';
+ // 行事曆
+ var soon=CAL.filter(function(c){return c.dt&&iso(c.dt)>=TODAY&&iso(c.dt)<=iso(addD(T0,14))}).sort(function(a,b){return a.dt-b.dt}),thisM=CAL.filter(function(c){return c.mk===TODAY.slice(0,7)&&!c.dt});
+ var th=(CAL.filter(function(c){return c.mk===TODAY.slice(0,7)})[0]||{}).theme;
+ h+='<div class="card"><h3>📅 行事曆 <a href="../calendar.html">行事曆 ›</a></h3>'+(th?'<p style="margin:0 0 4px">本月主題：<b>'+E(th)+'</b></p>':'')+
+  '<div class="sec">14 天內</div>'+(soon.length?soon.map(function(c){return'<div class="it"><span class="tm">'+lbl(c.dt)+'</span><span class="tx">'+E(c.t)+'</span></div>'}).join(""):'<p class="none">沒有寫日期的活動。</p>')+
+  (thisM.length?'<div class="sec">本月其他</div>'+thisM.slice(0,6).map(function(c){return'<div class="it"><span class="tx">'+E(c.t)+'</span></div>'}).join(""):'')+'</div>';
+ // 提醒到手機
+ h+='<div class="card"><h3>🔔 提醒到手機</h3><p class="tip" style="margin:0">網站沒辦法自己發通知，但可以把參觀預約加到手機行事曆，時間到手機就會提醒你。</p>'+
+  '<a class="b g" id="ics" href="#">📲 把接下來 30 天的參觀加到手機行事曆</a>'+
+  '<p class="tip" style="margin:8px 0 0">每天早上自動打開這一頁：iPhone「捷徑」App →「自動化」→「特定時間」（例如 8:00）→ 動作選「打開 URL」，貼上這一頁的網址。也可以在 Safari 按「分享」→「加入主畫面」。</p></div>';
+ $("app").innerHTML=h;
+ $("ics").onclick=function(e){e.preventDefault();var lim=addD(T0,30),L=V.filter(function(v){return v.d>=T0&&v.d<=lim});if(!L.length){alert("接下來 30 天沒有參觀預約");return}
+  var f=function(d,t){var m=(t||"").match(/(\d{1,2}):(\d{2})/),h2=m?+m[1]:9,mi=m?+m[2]:0;return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+"T"+pad(h2)+pad(mi)+"00"},
+   esc=function(s){return String(s||"").replace(/[\\,;]/g,function(c){return"\\"+c}).replace(/\n/g," ")};
+  var s="BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//SunnyOffice//visit//ZH\r\nCALSCALE:GREGORIAN\r\n";
+  L.forEach(function(v,k){var st=f(v.d,v.t),end=st.slice(0,9)+pad(Math.min(23,+st.slice(9,11)+1))+st.slice(11);
+   s+="BEGIN:VEVENT\r\nUID:visit-"+st+"-"+k+"-"+encodeURIComponent(v.ph||v.p).replace(/%/g,"")+"@sunny\r\nDTSTAMP:"+f(T0,"00:00")+"\r\nDTSTART:"+st+"\r\nDTEND:"+end+"\r\nSUMMARY:"+esc("參觀："+v.p+(v.c?"（"+v.c+"）":""))+"\r\nDESCRIPTION:"+esc((v.ph?"電話 "+v.ph+" ":"")+(v.age?"年紀 "+v.age+" ":"")+(v.cls?v.cls+" ":"")+(v.n||""))+"\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:參觀提醒\r\nTRIGGER:-PT60M\r\nEND:VALARM\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:明天有參觀\r\nTRIGGER:-P1D\r\nEND:VALARM\r\nEND:VEVENT\r\n"});
+  s+="END:VCALENDAR\r\n";var u=URL.createObjectURL(new Blob([s],{type:"text/calendar"})),a2=document.createElement("a");a2.href=u;a2.download="參觀預約.ics";document.body.appendChild(a2);a2.click();setTimeout(function(){URL.revokeObjectURL(u);a2.remove()},1000)}}
+SF.gate(function(){run()});
+</script>
+</body></html>
